@@ -1,0 +1,6 @@
+sphinx==7.2
+sphinx-rtd-theme==3.0.1
+sphinxcontrib-bibtex==2.6.2
+setuptools==72.1.0
+myst_parser==3.0.1
+sphinx_subfigure==0.2.4
