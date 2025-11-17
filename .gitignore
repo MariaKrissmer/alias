@@ -4,4 +4,5 @@ __pycache__/
 .env
 *.log
 docs/
+*/hf_config.py
 

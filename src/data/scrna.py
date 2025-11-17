@@ -86,6 +86,7 @@ def run_preprocessing(adata, batch_key, scrna_config: DatascRNAConfig, **kwargs)
         print(f"Batches with fewer than {cfg['min_batch_cells']} cells: {len(batch_sizes) - len(valid_batches)}")
         print("Filtering small batches...")
     adata = adata[adata.obs[batch_key].isin(valid_batches)].copy()
+    sc.pp.filter_genes(adata, min_cells=cfg['min_cells'])
 
     # Save counts to separate layer
     adata.layers["counts"] = adata.X.copy()
@@ -104,8 +105,8 @@ def run_preprocessing(adata, batch_key, scrna_config: DatascRNAConfig, **kwargs)
         adata.uns["logged"] = True
     
     if verbose:
-        print(f"Identifying {cfg['hvg_number']} highly variable genes, accounting for batches using '{batch_key}'...")
-    sc.pp.highly_variable_genes(adata, n_top_genes=cfg['hvg_number'], batch_key=batch_key)
+        print(f"Identifying {cfg['hvg_number']} highly variable genes...")
+    sc.pp.highly_variable_genes(adata, n_top_genes=cfg['hvg_number'])
     
     if verbose:
         print("Subsetting to highly variable genes...")
