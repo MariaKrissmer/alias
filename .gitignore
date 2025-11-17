@@ -1,0 +1,6 @@
+# public/.gitignore (rules for github-visible repo)
+__pycache__/
+*.pyc
+.env
+*.log
+
