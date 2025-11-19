@@ -7,17 +7,26 @@ Copy .env.example to .env and add your actual tokens.
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-# Load .env file from project root
-project_root = Path(__file__).parent.parent.parent
-env_path = project_root / ".env"
+# Try to find .env file in the following order:
+# 1. Current working directory (where user runs their script)
+# 2. Search up directory tree from cwd (for nested project structures)
+# 3. User home directory (~/.env as fallback)
 
-if env_path.exists():
+env_path = find_dotenv(usecwd=True)  # Searches from cwd upwards
+
+if env_path:
     load_dotenv(env_path)
 else:
-    print(f"Warning: .env file not found at {env_path}")
-    print(f"Please copy .env.example to .env and add your Hugging Face tokens.")
+    # Try home directory as fallback
+    home_env = Path.home() / ".env"
+    if home_env.exists():
+        load_dotenv(home_env)
+    else:
+        print("Warning: .env file not found.")
+        print("Searched in: current directory (and parents), and ~/.env")
+        print("Please create a .env file with your Hugging Face tokens (see .env.example)")
 
 
 class HFConfig:
