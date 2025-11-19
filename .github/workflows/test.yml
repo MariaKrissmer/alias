@@ -32,12 +32,11 @@ jobs:
       run: |
         uv sync --extra test
     
-    - name: Run import tests
+    - name: Run tests
       run: |
-        uv run pytest tests/test_imports.py -v
+        uv run pytest tests/ -v --tb=short
     
-    - name: Test package installation
+    - name: Verify package installation
       run: |
-        uv pip install -e .
         uv run python -c "from alias import data, model, util, evaluation; print('✓ All imports successful!')"
 

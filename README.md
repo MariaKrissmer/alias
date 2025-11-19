@@ -40,14 +40,22 @@ cp .env.example .env
 
 The package is tested on Python 3.11, 3.12, and 3.13.
 
+### Test Suite
+
+- **Import tests** - Verify all modules can be imported
+- **Config validation** - Test configuration classes and defaults
+- **Dependency integration** - Ensure package dependencies work together
+
 To run tests locally:
 
 ```bash
-# Run import tests
-uv run pytest tests/test_imports.py -v
+# Run all tests (fast, ~3 seconds)
+uv run pytest tests/ -v
 
-# Or with verbose output
-uv run pytest tests/test_imports.py -vv
+# Run specific test files
+uv run pytest tests/test_imports.py -v
+uv run pytest tests/test_configs.py -v
+uv run pytest tests/test_dependencies.py -v
 ```
 
 Tests run automatically on every push via GitHub Actions. 

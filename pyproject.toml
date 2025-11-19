@@ -29,3 +29,17 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "-v",
+    "-ra",
+    "--strict-markers",
+]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "requires_env: marks tests that require .env configuration",
+    "integration: marks integration tests",
+]
