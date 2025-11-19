@@ -47,6 +47,12 @@ Thumbs.db
 
 # Project specific
 docs/
+data/*.h5ad
+data/*.h5
+out/
+models/
+
+# Test data is tracked (tests/data/*.h5ad is included)
 
 # Testing
 .pytest_cache/

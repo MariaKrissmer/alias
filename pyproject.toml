@@ -41,5 +41,5 @@ testpaths = ["tests"]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "requires_env: marks tests that require .env configuration",
-    "integration: marks integration tests",
+    "integration: marks integration tests with real data (slower)",
 ]
