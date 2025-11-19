@@ -155,7 +155,8 @@ def generate_triplets(
     
     if cfg["hard_negative_mining"]:
         
-        dataset = Dataset.from_pandas(df)
+        if not cfg["random_negative_mining"]:
+            dataset = Dataset.from_pandas(df)
     
         # Shuffle the dataset first
         dataset = dataset.shuffle(seed=cfg["seed"])
@@ -229,6 +230,21 @@ def generate_triplets(
                 upload_dataset_to_hf(dataset_dict=train_data, dataset_name=type, name=cfg["hf_name"])
             else:
                 upload_dataset_to_hf(dataset_dict=train_data, dataset_name=type)
-
+    
+    # If no hard negative mining was done, split the dataset here
+    if not cfg["hard_negative_mining"]:
+        split = dataset.train_test_split(test_size=cfg["eval_split"], seed=cfg["seed"])
+        train_dataset = split['train']
+        eval_dataset = split['test']
+        
+        if cfg.get("hf_upload", False):
+            train_data = {
+                f"{type}_train": train_dataset,
+                f"{type}_eval": eval_dataset
+            }
+            if cfg.get("hf_name"):
+                upload_dataset_to_hf(dataset_dict=train_data, dataset_name=type, name=cfg["hf_name"])
+            else:
+                upload_dataset_to_hf(dataset_dict=train_data, dataset_name=type)
 
     return train_dataset, eval_dataset
