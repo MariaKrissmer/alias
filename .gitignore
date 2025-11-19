@@ -4,5 +4,17 @@ __pycache__/
 .env
 *.log
 docs/
-*/hf_config.py
+data/*.h5ad
+data/*.h5
+out/
+models/
+notebooks/models/
+# Test data is tracked (tests/data/*.h5ad is included)
 
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# uv
+.uv/
