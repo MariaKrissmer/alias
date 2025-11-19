@@ -7,7 +7,6 @@ from sentence_transformers import SentenceTransformerTrainer, SentenceTransforme
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.evaluation import TripletEvaluator
 import torch
-from alias.util.hf_config import hf_config
 from datetime import datetime
 from alias.util.load_hf_model import load_model, load_hf_dataset
 from tqdm import tqdm
@@ -255,6 +254,8 @@ def setup_train_multi_dataset(dataset_dict: dict, datasets: list[str], train_con
         print(f"Final model saved to {output_path}")
 
     if cfg["save_to_hf"]:
+        # Lazy import to avoid requiring tokens when not uploading
+        from alias.util.hf_config import hf_config
         model.push_to_hub(repo_id=output_dir, token=hf_config.HF_TOKEN_UPLOAD, private=True)
         print(f"Model pushed to: https://huggingface.co/{output_dir}")
     
