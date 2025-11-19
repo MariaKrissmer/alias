@@ -4,10 +4,10 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 from dataclasses import dataclass
-from util.similarity_cellwhisperer import evaluate_similarity_cellwhisperer
+from alias.util.similarity_cellwhisperer import evaluate_similarity_cellwhisperer
 import json
 
-from util.plots.umap_plots import UMAPCellPlotter
+from alias.util.plots.umap_plots import UMAPCellPlotter
 
 @dataclass
 class FunctionalitySimilarityConfig:

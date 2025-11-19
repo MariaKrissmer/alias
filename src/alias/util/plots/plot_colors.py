@@ -1,7 +1,7 @@
 # plot_color_preview.py
 import matplotlib.pyplot as plt
 import numpy as np
-from color_definition import COLORMAPS, CATEGORICAL_PALETTES
+from .color_definition import COLORMAPS, CATEGORICAL_PALETTES
 
 def plot_colormaps(colormaps):
     n = len(colormaps)
@@ -37,6 +37,7 @@ def plot_categorical_palettes(palettes):
     plt.tight_layout()
     plt.show()
 
-# Run visual previews
-plot_colormaps(COLORMAPS)
-plot_categorical_palettes(CATEGORICAL_PALETTES)
+# Run visual previews only when script is executed directly
+if __name__ == "__main__":
+    plot_colormaps(COLORMAPS)
+    plot_categorical_palettes(CATEGORICAL_PALETTES)

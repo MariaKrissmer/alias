@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from sklearn.metrics import roc_curve, auc
 
-from util.plots.umap_plots import UMAPCellPlotter
+from .plots.umap_plots import UMAPCellPlotter
 
 
 def evaluate_similarity_cellwhisperer(

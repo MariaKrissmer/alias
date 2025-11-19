@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from dataclasses import dataclass
-from util.similarity import evaluate_similarity
-from util.plots.umap_plots import UMAPCellPlotter
+from alias.util.similarity import evaluate_similarity
+from alias.util.plots.umap_plots import UMAPCellPlotter
 import json
 
 

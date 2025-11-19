@@ -98,11 +98,10 @@ hex_colors = [mcolors.to_hex(c) for c in filtered_colors]
 tab20_new = [mcolors.to_hex(c) for c in filtered_colors]
 
 
-true_false_palette = {
+# Boolean color mapping (stored separately, not a palette)
+TRUE_FALSE_COLORS = {
     True: tabc["tabc1"][0],   # teal[0]
     False: tabc["tabc1"][1],  # orange[0]
 }
 
 CATEGORICAL_PALETTES["tab20_new"] = tab20_new
-
-CATEGORICAL_PALETTES["true_false"] = true_false_palette

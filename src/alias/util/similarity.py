@@ -5,7 +5,7 @@ from pathlib import Path
 from sentence_transformers import util
 from sklearn.metrics import roc_curve, auc
 
-from util.plots.umap_plots import UMAPCellPlotter
+from .plots.umap_plots import UMAPCellPlotter
 
 
 def evaluate_similarity(

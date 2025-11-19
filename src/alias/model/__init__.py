@@ -1,7 +1,7 @@
 # model/__init__.py
 
 # Import functions from submodules
-from model.training import train_model, TrainingSTConfig
+from .training import train_model, TrainingSTConfig
 
 # Optional: define what is publicly available
 __all__ = [

@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
 import umap
-from util.plots.umap_plots import UMAPCellPlotter
+from alias.util.plots.umap_plots import UMAPCellPlotter
 import json
 
 @dataclass

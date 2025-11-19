@@ -6,8 +6,8 @@ import pandas as pd
 import torch, random
 from tqdm import tqdm
 
-from util.hard_negative_mining import mine_hard_negatives
-from util.load_hf_model import load_model, upload_dataset_to_hf
+from alias.util.hard_negative_mining import mine_hard_negatives
+from alias.util.load_hf_model import load_model, upload_dataset_to_hf
 
 
 @dataclass

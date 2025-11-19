@@ -10,8 +10,8 @@ from adjustText import adjust_text
 import matplotlib.colors as mcolors
 from matplotlib.patches import Patch
 
-from util.plots.pub_style import set_pub_style
-from util.plots.color_definition import CATEGORICAL_PALETTES, COLORMAPS
+from .pub_style import set_pub_style
+from .color_definition import CATEGORICAL_PALETTES, COLORMAPS
 
 class UMAPCellPlotter:
     def __init__(

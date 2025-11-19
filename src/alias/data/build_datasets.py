@@ -3,9 +3,9 @@ from typing import Dict, Optional
 from datasets import Dataset
 import scanpy as sc
 
-from data.scrna import DatascRNAConfig, gen_scrna_dataset
-from data.ncbi import DataNCBIConfig, gen_ncbi_dataset
-from data.triplet_generation import TripletGenerationConfig, generate_triplets
+from .scrna import DatascRNAConfig, gen_scrna_dataset
+from .ncbi import DataNCBIConfig, gen_ncbi_dataset
+from .triplet_generation import TripletGenerationConfig, generate_triplets
 
 
 def build_datasets(

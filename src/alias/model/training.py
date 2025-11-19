@@ -7,9 +7,9 @@ from sentence_transformers import SentenceTransformerTrainer, SentenceTransforme
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.evaluation import TripletEvaluator
 import torch
-from util.hf_config import hf_config
+from alias.util.hf_config import hf_config
 from datetime import datetime
-from util.load_hf_model import load_model, load_hf_dataset
+from alias.util.load_hf_model import load_model, load_hf_dataset
 from tqdm import tqdm
 from datasets import Dataset
 

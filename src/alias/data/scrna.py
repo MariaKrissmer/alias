@@ -10,7 +10,7 @@ import scanpy as sc
 import random
 from pathlib import Path
 
-from util.cell_sentence_templates import TEMPLATES
+from alias.util.cell_sentence_templates import TEMPLATES
 
 
 @dataclass

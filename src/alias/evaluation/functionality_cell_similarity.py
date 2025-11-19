@@ -4,10 +4,10 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 from dataclasses import dataclass
-from util.similarity import evaluate_similarity
+from alias.util.similarity import evaluate_similarity
 import json
 
-from util.plots.umap_plots import UMAPCellPlotter
+from alias.util.plots.umap_plots import UMAPCellPlotter
 
 
 @dataclass

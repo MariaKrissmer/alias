@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 import json
 
-from util.load_hf_model import load_model
+from alias.util.load_hf_model import load_model
 
 
 # ---------------- CONFIG ---------------- #
