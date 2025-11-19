@@ -3,11 +3,13 @@ from huggingface_hub.utils import HfHubHTTPError
 from sentence_transformers import SentenceTransformer
 from datetime import datetime
 from datasets import DatasetDict, load_dataset
+import os
 
-from .hf_config import hf_config
 
-
-def is_model_private(model_id: str, token: str) -> bool:
+def is_model_private(model_id: str, token: str = None) -> bool:
+    """Check if a model is private. Returns False if token is not provided."""
+    if not token:
+        return False
     api = HfApi()
     try:
         model_info: ModelInfo = api.model_info(model_id, token=token)
@@ -17,9 +19,13 @@ def is_model_private(model_id: str, token: str) -> bool:
         return False  # Default to public if it fails (or handle differently)
 
 def load_model(model_id: str):
-    if is_model_private(model_id, hf_config.HF_TOKEN_DOWNLOAD):
+    """Load a model from HuggingFace, using token only if available and needed."""
+    # Only import and use token if available
+    token = os.getenv("HF_TOKEN_DOWNLOAD")
+    
+    if token and is_model_private(model_id, token):
         print(f"Model '{model_id}' is private. Using token.")
-        model = SentenceTransformer(model_id, token=hf_config.HF_TOKEN_DOWNLOAD)
+        model = SentenceTransformer(model_id, token=token)
     else:
         print(f"Model '{model_id}' is public. No token needed.")
         model = SentenceTransformer(model_id)
@@ -42,13 +48,17 @@ def upload_dataset_to_hf(
         dataset_dict: Either a `Dataset`, `DatasetDict`, or dict of Datasets.
         name: Optional repo name. Defaults to current date (YYYYMMDD_HHMM).
         private: Whether to make the repo private (default: True).
-        token: HF access token (defaults to hf_config.HF_TOKEN_UPLOAD if defined).
+        token: HF access token (required for upload).
         org: Optional organization name to upload under.
     """
     api = HfApi()
-    token = token or getattr(hf_config, "HF_TOKEN_UPLOAD", None)
     if not token:
-        raise ValueError("No Hugging Face token provided or found in hf_config.HF_TOKEN_UPLOAD")
+        token = os.getenv("HF_TOKEN_UPLOAD")
+    if not token:
+        raise ValueError(
+            "No Hugging Face token provided. "
+            "Set HF_TOKEN_UPLOAD in your .env file or pass token parameter."
+        )
 
     if name is None:
         repo_name = f"{dataset_name}_{datetime.now().strftime('%Y%m%d_%H%M')}"
@@ -77,15 +87,23 @@ def load_hf_dataset(dataset_name: str, hf_token: str = None, **kwargs):
 
     Args:
         dataset_name (str): e.g., 'username/dataset_name'
-        hf_token (str): Hugging Face token for private datasets.
+        hf_token (str): Hugging Face token for private datasets (optional).
         **kwargs: Any additional arguments to pass to load_dataset.
 
     Returns:
-        A Dataset or DatasetDict object.fH
+        A Dataset or DatasetDict object.
     """
     api = HfApi()
     
-    hf_token = hf_config.HF_TOKEN_DOWNLOAD
+    # Get token from env if not provided
+    if not hf_token:
+        hf_token = os.getenv("HF_TOKEN_DOWNLOAD")
+    
+    if not hf_token:
+        raise ValueError(
+            "No Hugging Face token available for loading datasets. "
+            "Set HF_TOKEN_DOWNLOAD in your .env file or pass hf_token parameter."
+        )
 
     # Step 1: Check privacy status
     try:
