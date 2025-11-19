@@ -26,20 +26,15 @@ cp .env.example .env
 
 ### Environment Variables
 
-The project requires Hugging Face tokens for accessing and uploading models/datasets. 
+The project requires Hugging Face tokens for accessing and uploading models/datasets.
 
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
+**Quick setup:**
+```bash
+cp .env.example .env
+# Edit .env and add your actual Hugging Face tokens
+```
 
-2. Edit `.env` and add your tokens:
-   ```bash
-   HF_TOKEN_DOWNLOAD=your_actual_token_here
-   HF_TOKEN_UPLOAD=your_actual_token_here
-   ```
-
-3. Get your tokens from [Hugging Face Settings](https://huggingface.co/settings/tokens)
+📖 **For detailed configuration instructions, troubleshooting, and usage examples, see [CONFIGURATION.md](CONFIGURATION.md)**
 
 ## Testing
 
