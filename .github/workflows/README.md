@@ -11,7 +11,6 @@ This workflow runs the test suite across multiple Python versions to ensure comp
    - Pull requests to those branches
 
 2. **Tests Python versions:**
-   - Python 3.10
    - Python 3.11
    - Python 3.12
    - Python 3.13
