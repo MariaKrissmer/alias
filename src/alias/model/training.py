@@ -1,5 +1,5 @@
 from dataclasses import dataclass, asdict
-from typing import List, Optional, Literal, Dict
+from typing import Optional, Literal, Union
 from pathlib import Path
 import pandas as pd
 from sentence_transformers import losses
@@ -21,7 +21,7 @@ class TrainingSTConfig:
     
     save_to_local: bool = True
     save_to_hf: bool = False
-    matryoshka: Optional[List[int]] = None
+    matryoshka: Optional[list[int]] = None
 
     # training hyperparams
     new_model_name: Optional[str] = None
@@ -39,9 +39,9 @@ class TrainingSTConfig:
     index: bool = False
     testrun: bool = False
     
-    load_from_hf:bool = True,
-    scrna_hf_dataset:str = None,
-    ncbi_hf_dataset:str = None
+    load_from_hf: bool = True
+    scrna_hf_dataset: str = None
+    ncbi_hf_dataset: str = None
     
     output_path: str = None
     
@@ -81,7 +81,7 @@ def setup_loss(train_config: TrainingSTConfig, model: str):
         
     return train_loss
 
-def setup_train(dataset_dict: Dict, datasets:str, train_config: TrainingSTConfig, **kwargs):
+def setup_train(dataset_dict: dict, datasets: str, train_config: TrainingSTConfig, **kwargs):
     cfg = asdict(train_config)
     cfg.update(kwargs)
 
@@ -109,10 +109,12 @@ def setup_train(dataset_dict: Dict, datasets:str, train_config: TrainingSTConfig
     if cfg["output_path"] is None:
         date_str = datetime.now().strftime("%Y%m%d")
         output_dir = cfg.get("new_model_name") or f"{cfg['model'].split('/')[-1]}_{datasets}_{date_str}"
-        output_path = Path(__file__).resolve().parents[2] / "out/models" / output_dir
+        # Use current working directory instead of __file__ location
+        # This works for both pip-installed and editable installs
+        output_path = Path.cwd() / "models" / output_dir
 
     else:
-        output_path = cfg["output_path"]
+        output_path = Path(cfg["output_path"])
         
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -161,9 +163,11 @@ def setup_train(dataset_dict: Dict, datasets:str, train_config: TrainingSTConfig
     if cfg["save_to_hf"]:
         model.push_to_hub(repo_id=output_dir, token=hf_config.HF_TOKEN_UPLOAD, private=True)
         print(f"Model pushed to: https://huggingface.co/{output_dir}")
+    
+    return model
         
         
-def setup_train_multi_dataset(dataset_dict: Dict, datasets: Literal['scrna', 'ncbi'], train_config: TrainingSTConfig, **kwargs):
+def setup_train_multi_dataset(dataset_dict: dict, datasets: list[str], train_config: TrainingSTConfig, **kwargs):
     cfg = asdict(train_config)
     cfg.update(kwargs)
 
@@ -182,10 +186,12 @@ def setup_train_multi_dataset(dataset_dict: Dict, datasets: Literal['scrna', 'nc
     if cfg["output_path"] is None:
         date_str = datetime.now().strftime("%Y%m%d")
         output_dir = f"{cfg['model'].split('/')[-1]}_multi_{date_str}" or f"{cfg['new_model_name']}_multi_{date_str}"
-        output_path = Path(__file__).resolve().parents[2] / "out/models" / output_dir
+        # Use current working directory instead of __file__ location
+        # This works for both pip-installed and editable installs
+        output_path = Path.cwd() / "models" / output_dir
 
     else:
-        output_path = cfg["output_path"]
+        output_path = Path(cfg["output_path"])
         
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -207,11 +213,14 @@ def setup_train_multi_dataset(dataset_dict: Dict, datasets: Literal['scrna', 'nc
         
         print(f"Epoch {epoch+1}/{cfg['epochs']} — training on {current_dataset_name}")
         
-        if cfg["load_from_hf"] is not None:
+        if cfg["load_from_hf"]:
             if current_dataset_name == "scrna":
                 ds = load_hf_dataset(cfg["scrna_hf_dataset"])
             elif current_dataset_name == "ncbi":
                 ds = load_hf_dataset(cfg["ncbi_hf_dataset"])
+            else:
+                # Fallback to local dataset if dataset name not recognized
+                ds = dataset_dict[current_dataset_name]
         else:
             ds = dataset_dict[current_dataset_name]
 
@@ -248,11 +257,33 @@ def setup_train_multi_dataset(dataset_dict: Dict, datasets: Literal['scrna', 'nc
     if cfg["save_to_hf"]:
         model.push_to_hub(repo_id=output_dir, token=hf_config.HF_TOKEN_UPLOAD, private=True)
         print(f"Model pushed to: https://huggingface.co/{output_dir}")
+    
+    return model
 
 
-def train_model(dataset_dict: Dict, datasets: Literal['scrna', 'ncbi'], train_config: TrainingSTConfig, **kwargs):
-
+def train_model(
+    dataset_dict: dict, 
+    datasets: Union[str, list[str]], 
+    train_config: TrainingSTConfig, 
+    **kwargs
+):
+    """
+    Train a model on one or more datasets.
+    
+    Args:
+        dataset_dict: Dictionary containing training datasets
+        datasets: Single dataset name ('scrna') or list of names (['scrna', 'ncbi'])
+        train_config: Training configuration
+        **kwargs: Additional arguments to override config
+    
+    Returns:
+        Trained model
+    """
+    # Normalize datasets to list
+    if isinstance(datasets, str):
+        datasets = [datasets]
+    
     if len(datasets) == 1:
-        setup_train(dataset_dict, datasets[0], train_config, **kwargs)
+        return setup_train(dataset_dict, datasets[0], train_config, **kwargs)
     else:
-        setup_train_multi_dataset(dataset_dict, datasets, train_config, **kwargs)
+        return setup_train_multi_dataset(dataset_dict, datasets, train_config, **kwargs)
