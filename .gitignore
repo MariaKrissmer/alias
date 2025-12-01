@@ -1,8 +1,63 @@
 # public/.gitignore (rules for github-visible repo)
-__pycache__/
-*.pyc
-.env
-*.log
-docs/
-*/hf_config.py
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+docs/
+data/*.h5ad
+data/*.h5
+out/
+models/
+
+# Test data is tracked (tests/data/*.h5ad is included)
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# uv
+.uv/
