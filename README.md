@@ -36,6 +36,20 @@ cp .env.example .env
 
 📖 **For detailed configuration instructions, troubleshooting, and usage examples, see [CONFIGURATION.md](CONFIGURATION.md)**
 
+## Getting Started
+
+### Demo Notebook
+
+Check out the complete training pipeline in our demo notebook:
+
+```bash
+# Place your demo data at data/demo.h5ad
+# Then run the notebook
+uv run jupyter notebook notebooks/demo_training_pipeline.ipynb
+```
+
+See [`notebooks/README.md`](notebooks/README.md) for more details.
+
 ## Testing
 
 The package is tested on Python 3.11, 3.12, and 3.13.
@@ -49,16 +63,22 @@ The package is tested on Python 3.11, 3.12, and 3.13.
 To run tests locally:
 
 ```bash
-# Run all tests (fast, ~3 seconds)
+# Run all tests (67 tests, ~3 seconds)
 uv run pytest tests/ -v
+
+# Run fast unit tests only (63 tests, ~2 seconds)
+uv run pytest tests/ -v -m "not integration"
+
+# Run integration tests with real data (4 tests)
+uv run pytest tests/ -v -m integration
 
 # Run specific test files
 uv run pytest tests/test_imports.py -v
 uv run pytest tests/test_configs.py -v
-uv run pytest tests/test_dependencies.py -v
+uv run pytest tests/test_integration_pipeline.py -v
 ```
 
-Tests run automatically on every push via GitHub Actions. 
+Tests run automatically on every push via GitHub Actions. See [`tests/README.md`](tests/README.md) for details. 
 
 
 

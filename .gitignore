@@ -51,7 +51,7 @@ data/*.h5ad
 data/*.h5
 out/
 models/
-
+notebooks/models/
 # Test data is tracked (tests/data/*.h5ad is included)
 
 # Testing
