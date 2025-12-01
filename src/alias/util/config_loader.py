@@ -5,10 +5,70 @@ Configuration loader utility for converting YAML configs to dataclass objects.
 from pathlib import Path
 from typing import Any, Type, TypeVar
 from dataclasses import fields, is_dataclass
+import os
+import re
 import yaml
 
 
 T = TypeVar('T')
+
+
+def substitute_env_vars(value: Any) -> Any:
+    """
+    Recursively substitute environment variables in configuration values.
+    
+    Supports syntax: ${VAR_NAME} or ${VAR_NAME:-default_value}
+    
+    Parameters
+    ----------
+    value : Any
+        Configuration value (can be string, dict, list, etc.)
+        
+    Returns
+    -------
+    Any
+        Value with environment variables substituted.
+        
+    Examples
+    --------
+    >>> os.environ['TEST_VAR'] = 'hello'
+    >>> substitute_env_vars('${TEST_VAR}')
+    'hello'
+    >>> substitute_env_vars('${MISSING_VAR:-default}')
+    'default'
+    >>> substitute_env_vars({'key': '${TEST_VAR}'})
+    {'key': 'hello'}
+    """
+    if isinstance(value, str):
+        # Pattern matches ${VAR_NAME} or ${VAR_NAME:-default}
+        pattern = r'\$\{([^}:]+)(?::-([^}]*))?\}'
+        
+        def replacer(match):
+            var_name = match.group(1)
+            default_value = match.group(2)
+            
+            env_value = os.getenv(var_name)
+            
+            if env_value is not None:
+                return env_value
+            elif default_value is not None:
+                return default_value
+            else:
+                raise ValueError(
+                    f"Environment variable '{var_name}' is not set and no default provided. "
+                    f"Please set it in your .env file or environment."
+                )
+        
+        return re.sub(pattern, replacer, value)
+    
+    elif isinstance(value, dict):
+        return {k: substitute_env_vars(v) for k, v in value.items()}
+    
+    elif isinstance(value, list):
+        return [substitute_env_vars(item) for item in value]
+    
+    else:
+        return value
 
 
 def load_yaml_config(config_path: str | Path) -> dict[str, Any]:
@@ -32,6 +92,9 @@ def load_yaml_config(config_path: str | Path) -> dict[str, Any]:
     
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
+    
+    # Substitute environment variables
+    config = substitute_env_vars(config)
     
     return config
 
