@@ -11,7 +11,7 @@ from datetime import datetime
 from alias.util.load_hf_model import load_model, load_hf_dataset
 from tqdm import tqdm
 from datasets import Dataset
-
+from alias.util.hf_config import hf_config
 
 @dataclass
 class TrainingSTConfig:
