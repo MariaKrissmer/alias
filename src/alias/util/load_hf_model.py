@@ -3,6 +3,7 @@ from huggingface_hub.utils import HfHubHTTPError
 from sentence_transformers import SentenceTransformer
 from datetime import datetime
 from datasets import DatasetDict, load_dataset
+from pathlib import Path
 import os
 
 
@@ -19,17 +20,30 @@ def is_model_private(model_id: str, token: str = None) -> bool:
         return False  # Default to public if it fails (or handle differently)
 
 def load_model(model_id: str):
-    """Load a model from HuggingFace, using token only if available and needed."""
-    # Only import and use token if available
-    token = os.getenv("HF_TOKEN_DOWNLOAD")
+    """
+    Load a SentenceTransformer model.
     
+    - If `model_id` is a local path to a folder, load it directly.
+    - Otherwise, treat it as a HuggingFace model ID (public or private).
+    """
+    # Check if the input is a local path
+    if Path(model_id).exists():
+        print(f"Loading local model from: {model_id}")
+        model = SentenceTransformer(model_id)
+        return model
+
+    # Otherwise assume HuggingFace model
+    token = os.getenv("HF_TOKEN_DOWNLOAD")
+
+    # Optional: you can implement a check if model is private
+    from alias.util.load_hf_model import is_model_private
     if token and is_model_private(model_id, token):
-        print(f"Model '{model_id}' is private. Using token.")
+        print(f"Loading private HuggingFace model '{model_id}' using token.")
         model = SentenceTransformer(model_id, token=token)
     else:
-        print(f"Model '{model_id}' is public. No token needed.")
+        print(f"Loading public HuggingFace model '{model_id}'.")
         model = SentenceTransformer(model_id)
-    
+
     return model
 
 def upload_dataset_to_hf(

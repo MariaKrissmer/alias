@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import seaborn as sns
 from pathlib import Path
 import pandas as pd
@@ -10,8 +11,8 @@ from adjustText import adjust_text
 import matplotlib.colors as mcolors
 from matplotlib.patches import Patch
 
-from .pub_style import set_pub_style
-from .color_definition import CATEGORICAL_PALETTES, COLORMAPS
+from alias.util.plots.pub_style import set_pub_style
+from alias.util.plots.color_definition import CATEGORICAL_PALETTES, COLORMAPS
 
 class UMAPCellPlotter:
     def __init__(
@@ -181,6 +182,9 @@ class UMAPCellPlotter:
                     ax=ax,
                     legend=False
                 )
+                
+                for coll in ax.collections:
+                    coll.set_rasterized(True)
 
                 if self.annotate_centroids and local_centroids is not None:
                     for _, row in local_centroids.iterrows():
@@ -247,6 +251,9 @@ class UMAPCellPlotter:
                     alpha=0.7,
                     linewidth=0
                 )
+                
+                for coll in ax.collections:
+                    coll.set_rasterized(True)
 
                 cbar = fig.colorbar(scatter, cax=cax)
                 ticks = np.linspace(vmin, vmax, 5)
@@ -276,6 +283,9 @@ class UMAPCellPlotter:
                     alpha=0.7,
                     linewidth=0
                 )
+                
+                for coll in ax.collections:
+                    coll.set_rasterized(True)
 
                 cbar = fig.colorbar(scatter, cax=cax)
                 ticks = np.linspace(vmin, vmax, 5)
@@ -304,6 +314,9 @@ class UMAPCellPlotter:
                     ax=ax,
                     legend='full'  # allow handles to be created
                 )
+                
+                for coll in ax.collections:
+                    coll.set_rasterized(True)
 
                 # Remove the seaborn legend from the main plot
                 if ax.get_legend():
@@ -365,9 +378,10 @@ class UMAPCellPlotter:
                 ax.set_title(title, **self.title_font_settings)
 
             if output_path:
+                mpl.rcParams['svg.fonttype'] = 'none'
                 output_path = Path(output_path)
                 output_path.parent.mkdir(parents=True, exist_ok=True)
-                plt.savefig(output_path, bbox_inches="tight")
+                plt.savefig(output_path, bbox_inches="tight", dpi=600)
                 plt.close()
             else:
                 return fig, ax
