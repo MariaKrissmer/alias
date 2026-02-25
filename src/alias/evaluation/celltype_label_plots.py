@@ -165,7 +165,7 @@ def umap_plots(
             plotter.plot_cells(
                 df_cells_umap,
                 annotation_column=annotation_column,
-                output_path=dataset_dir / "cells_colored_by_annotation.pdf",
+                output_path=dataset_dir / "cells_colored_by_annotation.svg",
                 title="Cells Colored by Annotation",
             )
 
@@ -176,7 +176,7 @@ def umap_plots(
                     df_cells_umap,
                     annotation_column=annotation_column,
                     annotate_centroids_df=df_centroids_umap,
-                    output_path=dataset_dir / "cells_with_celltype_labels.pdf",
+                    output_path=dataset_dir / "cells_with_celltype_labels.svg",
                     title="Cells with Cell Type Labels",
                 )
 
