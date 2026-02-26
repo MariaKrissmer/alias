@@ -102,8 +102,6 @@ def umap_plots(
                     df_celltypes_emb[annotation_column] = df_celltypes_emb.index.map(
                         lambda idx: annotation_map.get(idx, "unknown")  # <- direct value
                     )
-            
-            print(df_celltypes_emb.head(10))
 
             # --- Combine for joint UMAP ---
             dfs_to_concat = [df_cells_emb]
