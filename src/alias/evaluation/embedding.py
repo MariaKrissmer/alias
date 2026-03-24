@@ -2,14 +2,19 @@ from dataclasses import dataclass, asdict
 from datasets import Dataset
 from typing import Optional, List, Literal, Dict, Tuple, Any
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 import pandas as pd
 from pathlib import Path
 import re
 import json
 
-from alias.util.load_hf_model import load_model
+from alias.util.artifacts import (
+    create_run_directory,
+    load_annotation_map,
+    load_embedding_frame,
+    save_embedding_frame,
+    write_metadata,
+)
 
 
 # ---------------- CONFIG ---------------- #
@@ -29,6 +34,14 @@ def clean_model_name(model_name: str) -> str:
     """Clean the model name by removing special characters except alphanumerics and underscores."""
     last_part = Path(model_name).name
     return re.sub(r"[^\w\d_]", "", last_part)
+
+
+def resolve_artifact_root(output_dir: str | Path | None, category: str) -> Path:
+    """Preserve existing category-specific roots while supporting generic output roots."""
+    base_dir = Path(output_dir or "_out")
+    if base_dir.name == category:
+        return base_dir
+    return base_dir / category
 
 
 def sentence_transformer_embeddings(texts, st_model, embedding_config):
@@ -59,7 +72,11 @@ def prepare_dfs(
 
         # --- cells ---
         df_cells = df.copy()
-        df_cells.index = df_cells.index.astype(str)
+        source_index_column = "index" if embedding_config.index and "index" in df_cells.columns else None
+        if source_index_column is not None:
+            df_cells.index = df_cells[source_index_column].astype(str)
+        else:
+            df_cells.index = df_cells.index.astype(str)
         if embedding_config.max_cells and len(df_cells) > embedding_config.max_cells:
             df_cells = df_cells.sample(n=embedding_config.max_cells, random_state=42)
 
@@ -93,6 +110,74 @@ def prepare_dfs(
 
     return dfs_dict
 
+
+def load_saved_embeddings(
+    embedding_path: str | Path,
+    annotation_map_path: str | Path | None = None,
+    annotation_column: str | None = None,
+) -> pd.DataFrame | dict[str, Any]:
+    """Load saved embedding metadata or one embedding frame."""
+    embedding_path = Path(embedding_path)
+
+    if embedding_path.is_dir():
+        metadata_path = embedding_path / "metadata.json"
+        if not metadata_path.exists():
+            metadata_path = embedding_path / "embedding_metadata.json"
+
+        with metadata_path.open("r", encoding="utf-8") as handle:
+            metadata = json.load(handle)
+
+        if isinstance(metadata, dict) and "artifacts" in metadata and "dataset_name" in metadata:
+            return {metadata["dataset_name"]: metadata["artifacts"]}
+
+        return metadata
+
+    if embedding_path.suffix == ".json":
+        with embedding_path.open("r", encoding="utf-8") as handle:
+            metadata = json.load(handle)
+
+        if isinstance(metadata, dict) and "artifacts" in metadata and "dataset_name" in metadata:
+            return {metadata["dataset_name"]: metadata["artifacts"]}
+
+        return metadata
+
+    embedding_df = load_embedding_frame(embedding_path)
+    embedding_df.index = embedding_df.index.astype(str)
+
+    annotation_map = load_annotation_map(annotation_map_path)
+    if annotation_map is None:
+        return embedding_df
+
+    if all(isinstance(value_map, dict) for value_map in annotation_map.values()):
+        for column_name, value_map in annotation_map.items():
+            embedding_df[column_name] = embedding_df.index.map(
+                lambda idx: value_map.get(idx, "unknown")
+            )
+        return embedding_df
+
+    inferred_column = annotation_column
+    if inferred_column is None and annotation_map_path is not None:
+        annotation_name = Path(annotation_map_path).name
+        if annotation_name.endswith("_input_mapping.json"):
+            inferred_column = "data"
+        elif annotation_name.startswith("df_celltypes"):
+            inferred_column = "cell_type"
+        elif annotation_name.startswith("df_labels"):
+            inferred_column = "label"
+        else:
+            inferred_column = "annotation"
+
+    embedding_df[inferred_column or "annotation"] = embedding_df.index.map(
+        lambda idx: annotation_map.get(idx, "unknown")
+    )
+
+    return embedding_df
+
+def load_embedding_model(model_name: str):
+    from alias.util.load_hf_model import load_model
+
+    return load_model(model_name)
+
 def generate_embeddings(
     evaluation_dict: Dict[str, Dict[str, Any]],
     embedding_config: GenEmbeddingsConfig,
@@ -102,6 +187,8 @@ def generate_embeddings(
     Generate and save embeddings for each dataset and entity type.
     Returns metadata with paths to saved Parquet files.
     """
+    run_timestamp = kwargs.pop("run_timestamp", kwargs.pop("timestamp", None))
+
     cfg = asdict(embedding_config)
     cfg.update(kwargs)
     embedding_config = GenEmbeddingsConfig(**cfg)
@@ -111,17 +198,19 @@ def generate_embeddings(
 
     for model_name in tqdm(embedding_config.embedding_models, desc="Embedding Models"):
         print(f"\n Generating embeddings with model: {model_name}")
-        st_model = load_model(model_name)
+        st_model = load_embedding_model(model_name)
         cleaned_name = clean_model_name(model_name)
-
-        model_dir = Path(embedding_config.output_dir or ".") / cleaned_name
-        model_dir.mkdir(parents=True, exist_ok=True)
-
         model_metadata = {}
+        embeddings_root = resolve_artifact_root(embedding_config.output_dir, "embeddings")
 
         for dataset_name, dataset_dfs in dfs_dict.items():
-            dataset_dir = model_dir / dataset_name
-            dataset_dir.mkdir(exist_ok=True)
+            run_dir = create_run_directory(
+                root_dir=embeddings_root,
+                category="",
+                dataset_name=dataset_name,
+                model_name=cleaned_name,
+                timestamp=run_timestamp,
+            )
             dataset_metadata = {}
 
             for key, (column_name, df) in dataset_dfs.items():
@@ -131,54 +220,55 @@ def generate_embeddings(
                 emb = sentence_transformer_embeddings(texts, st_model, embedding_config)
                 emb_array = np.array(emb)
 
-                # --- Save embeddings to Parquet ---
                 emb_df = pd.DataFrame(emb_array)
                 emb_df.index = df.index
                 emb_df.index.name = "cell_id"
-                out_path = dataset_dir / f"{key}.parquet"
-                emb_df.to_parquet(out_path)
 
-                # Save annotation map for the main annotation column
-                ann_path = None
+                annotation_map = None
+                annotation_file_name = None
                 if embedding_config.annotation_column in df:
                     annotation_map = df[[embedding_config.annotation_column]].to_dict()
-                    ann_path = dataset_dir / f"{key}_annotations.json"
-                    with open(ann_path, "w") as f:
-                        json.dump(annotation_map, f, indent=2)
+                    annotation_file_name = f"{key}_annotations.json"
 
-                # Save annotation map for cell type labels
-                if 'cell_type' in df:
-                    annotation_map = df['cell_type'].to_dict()
-                    ann_path = dataset_dir / f"{key}_annotations.json"
-                    with open(ann_path, "w") as f:
-                        json.dump(annotation_map, f, indent=2)
-                        
+                if "cell_type" in df:
+                    annotation_map = df["cell_type"].to_dict()
+                    annotation_file_name = f"{key}_annotations.json"
+
                 if embedding_config.additional_data is not None and key == "df_additional":
-                    mapping_dict = df[column_name].astype(str).to_dict()
-                    ann_path = dataset_dir / f"{key}_input_mapping.json"
-                    with open(ann_path, "w") as f:
-                        json.dump(mapping_dict, f, indent=2)
+                    annotation_map = df[column_name].astype(str).to_dict()
+                    annotation_file_name = f"{key}_input_mapping.json"
 
-
-                # --- Metadata only ---
-                meta_info = {
-                    "path": str(out_path),
-                    "annotation_map": str(ann_path) if ann_path is not None else None,
-                    "dataset": dataset_name,
-                    "entity_type": key,
-                    "column": column_name,
-                    "n_samples": len(df),
-                    "embedding_dim": emb_array.shape[1] if emb_array.size > 0 else 0,
-                }
+                meta_info = save_embedding_frame(
+                    run_dir,
+                    key,
+                    emb_df,
+                    annotation_map=annotation_map,
+                    annotation_file_name=annotation_file_name,
+                )
+                meta_info.update(
+                    {
+                        "dataset": dataset_name,
+                        "entity_type": key,
+                        "column": column_name,
+                        "run_dir": str(run_dir),
+                    }
+                )
 
                 dataset_metadata[key] = meta_info
 
-
             model_metadata[dataset_name] = dataset_metadata
-
-        # Save JSON metadata for reproducibility
-        with open(model_dir / "embedding_metadata.json", "w") as f:
-            json.dump(model_metadata, f, indent=2)
+            write_metadata(
+                run_dir,
+                {
+                    "dataset_name": dataset_name,
+                    "model_name": cleaned_name,
+                    "annotation_column": embedding_config.annotation_column,
+                    "run_timestamp": Path(run_dir).name,
+                    "artifacts": dataset_metadata,
+                },
+            )
+            with (run_dir / "embedding_metadata.json").open("w", encoding="utf-8") as handle:
+                json.dump(dataset_metadata, handle, indent=2)
 
         embeddings_dict[cleaned_name] = model_metadata
 
