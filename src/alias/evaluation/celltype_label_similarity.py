@@ -1,10 +1,10 @@
 import pandas as pd
-import numpy as np
 from pathlib import Path
 from dataclasses import dataclass
 from alias.util.similarity import evaluate_similarity
-from alias.util.plots.umap_plots import UMAPCellPlotter
 import json
+
+from alias.util.artifacts import create_evaluation_run_directory, write_metadata
 
 
 @dataclass
@@ -12,6 +12,16 @@ class CellTypeSimilarityConfig:
     similarity_metric: str = "cosine"
     bins: int = 60
     output_dir: Path = Path(".")  # base folder for evaluation_plots
+
+
+def infer_run_timestamp(dataset_meta: dict[str, dict[str, str]]) -> str | None:
+    cell_meta = dataset_meta.get("df_cells", {})
+    cell_umap = cell_meta.get("umap", {})
+    if "path" in cell_umap:
+        return Path(cell_umap["path"]).parent.name
+    if "path" in cell_meta:
+        return Path(cell_meta["path"]).parent.name
+    return None
 
 
 def cell_type_label_similarity(
@@ -59,6 +69,15 @@ def cell_type_label_similarity(
             if label_meta is None:
                 continue
 
+            run_dir = create_evaluation_run_directory(
+                output_dir=config.output_dir,
+                model_name=model_name,
+                dataset_name=dataset_name,
+                evaluation_name="celltype_label_similarity",
+                timestamp=infer_run_timestamp(dataset_meta),
+            )
+            dataset_results = []
+
             df_celltypes_emb = pd.read_parquet(label_meta["path"])
             df_celltypes_emb.index = df_celltypes_emb.index.astype(str)
 
@@ -84,10 +103,6 @@ def cell_type_label_similarity(
                     elif key == "df_celltypes":
                         cell_type_umap_dict[key] = pd.read_parquet(val["umap"]["path"])
 
-            # --- Prepare output directory ---
-            base_out = Path(config.output_dir) / model_name / dataset_name / "celltype_label_similarity"
-            base_out.mkdir(parents=True, exist_ok=True)
-
             # --- Evaluate similarity per cell type ---
             for i, cell_type in enumerate(cell_type_labels):
                 ground_truth = pd.DataFrame({cell_type: cell_annotations == cell_type})
@@ -109,7 +124,7 @@ def cell_type_label_similarity(
                     cell_umap=cell_umap,
                     other_umap=cell_type_umap,
                     similarity_metric=config.similarity_metric,
-                    output_dir=base_out,
+                    output_dir=run_dir,
                     bins=config.bins
                 )
 
@@ -119,6 +134,26 @@ def cell_type_label_similarity(
                 results_df["cell_type"] = cell_type
 
                 all_results.append(results_df)
+                dataset_results.append(results_df)
+
+            if dataset_results:
+                combined_dataset_results = pd.concat(dataset_results, ignore_index=True)
+                results_path = run_dir / "results_df.csv"
+                combined_dataset_results.to_csv(results_path, index=False)
+                write_metadata(
+                    run_dir,
+                    {
+                        "evaluation_name": "celltype_label_similarity",
+                        "model_name": model_name,
+                        "dataset_name": dataset_name,
+                        "run_timestamp": run_dir.name,
+                        "embedding_run_dir": cell_meta.get("run_dir"),
+                        "cell_umap_path": cell_meta.get("umap", {}).get("path"),
+                        "celltype_umap_path": dataset_meta.get("df_celltypes", {}).get("umap", {}).get("path"),
+                        "results_path": str(results_path),
+                        "n_rows": len(combined_dataset_results),
+                    },
+                )
 
     combined_results = pd.concat(all_results, ignore_index=True)
     return combined_results

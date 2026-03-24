@@ -1,12 +1,10 @@
 import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 from pathlib import Path
 from dataclasses import dataclass
 from alias.util.similarity import evaluate_similarity
 import json
 
+from alias.util.artifacts import create_evaluation_run_directory, write_metadata
 from alias.util.plots.umap_plots import UMAPCellPlotter
 
 
@@ -16,6 +14,16 @@ class FunctionalitySimilarityConfig:
     bins: int = 60
     output_dir: Path = Path(".")
     plot: bool = True
+
+
+def infer_run_timestamp(dataset_meta: dict[str, dict[str, str]]) -> str | None:
+    cell_meta = dataset_meta.get("df_cells", {})
+    cell_umap = cell_meta.get("umap", {})
+    if "path" in cell_umap:
+        return Path(cell_umap["path"]).parent.name
+    if "path" in cell_meta:
+        return Path(cell_meta["path"]).parent.name
+    return None
 
 
 def functionality_similarity(
@@ -89,10 +97,14 @@ def functionality_similarity(
             functionality_embeddings = df_additional_emb.values
 
             print(functionality_names)
-            
-            # Prepare output folder
-            base_out = Path(config.output_dir) / model_name / dataset_name / "functionality_similarity"
-            base_out.mkdir(parents=True, exist_ok=True)
+
+            run_dir = create_evaluation_run_directory(
+                output_dir=config.output_dir,
+                model_name=model_name,
+                dataset_name=dataset_name,
+                evaluation_name="functionality_similarity",
+                timestamp=infer_run_timestamp(dataset_meta),
+            )
 
             # --- Evaluate similarity per functionality embedding ---
             results_df, _ = evaluate_similarity(
@@ -103,7 +115,7 @@ def functionality_similarity(
                 cell_umap=cell_umap,
                 other_umap=None,
                 similarity_metric=config.similarity_metric,
-                output_dir=base_out,
+                output_dir=run_dir,
                 bins=config.bins
             )
 
@@ -147,11 +159,27 @@ def functionality_similarity(
             plotter = UMAPCellPlotter(colormap_name=colormap_name)
             plotter.plot_similarity_heatmap(
                 sim_df=heatmap_df, 
-                output_path=base_out / "functionality_heatmap.pdf"
+                output_path=run_dir / "functionality_heatmap.pdf"
+            )
+
+            results_path = run_dir / "results_df.csv"
+            auc_summary.to_csv(results_path, index=False)
+            write_metadata(
+                run_dir,
+                {
+                    "evaluation_name": "functionality_similarity",
+                    "model_name": model_name,
+                    "dataset_name": dataset_name,
+                    "run_timestamp": run_dir.name,
+                    "embedding_run_dir": cell_meta.get("run_dir"),
+                    "cell_umap_path": cell_meta.get("umap", {}).get("path"),
+                    "results_path": str(results_path),
+                    "heatmap_path": str(run_dir / "functionality_heatmap.pdf"),
+                    "n_rows": len(auc_summary),
+                },
             )
 
     combined_results = pd.concat(all_results, ignore_index=True)
 
     
     return combined_results
-
