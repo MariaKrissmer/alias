@@ -2,9 +2,9 @@ import pandas as pd
 from pathlib import Path
 from dataclasses import dataclass
 from alias.util.similarity import evaluate_similarity
-import json
 
 from alias.util.artifacts import create_evaluation_run_directory, write_metadata
+from alias.evaluation.embedding import load_dataset_embedding_artifacts
 from alias.util.plots.umap_plots import UMAPCellPlotter
 
 
@@ -14,17 +14,6 @@ class FunctionalitySimilarityConfig:
     bins: int = 60
     output_dir: Path = Path(".")
     plot: bool = True
-
-
-def infer_run_timestamp(dataset_meta: dict[str, dict[str, str]]) -> str | None:
-    cell_meta = dataset_meta.get("df_cells", {})
-    cell_umap = cell_meta.get("umap", {})
-    if "path" in cell_umap:
-        return Path(cell_umap["path"]).parent.name
-    if "path" in cell_meta:
-        return Path(cell_meta["path"]).parent.name
-    return None
-
 
 def functionality_similarity(
     embeddings_dict: dict,
@@ -44,23 +33,15 @@ def functionality_similarity(
         for dataset_name, dataset_meta in model_data.items():
             print(f"Processing dataset: {dataset_name}")
 
-            # --- Load cell embeddings ---
-            cell_meta = dataset_meta["df_cells"]
-            cell_df = pd.read_parquet(cell_meta["path"])
-            cell_df.index = cell_df.index.astype(str)
+            loaded_dataset = load_dataset_embedding_artifacts(
+                dataset_meta,
+                annotation_column=annotation_column,
+            )
+            loaded_artifacts = loaded_dataset["artifacts"]
 
-            # Load annotations from JSON if present
-            ann_path = cell_meta.get("annotation_map")
-            if ann_path and Path(ann_path).exists():
-                with open(ann_path, "r") as f:
-                    annotation_map_full = json.load(f)
-                # Extract the dict for the specific annotation column
-                annotation_map = annotation_map_full.get(annotation_column, {})
-                cell_df[annotation_column] = cell_df.index.map(
-                    lambda idx: annotation_map.get(idx, "unknown")
-                )
-            elif annotation_column not in cell_df.columns:
-                cell_df[annotation_column] = "unknown"
+            cell_artifact = loaded_artifacts["df_cells"]
+            cell_meta = cell_artifact["metadata"]
+            cell_df = cell_artifact["dataframe"]
 
             if annotation_column not in cell_df.columns:
                 raise ValueError(f"{annotation_column} not found in cell dataframe for {dataset_name}")
@@ -71,30 +52,18 @@ def functionality_similarity(
             
             ground_truth = pd.DataFrame({ct: cell_annotations == ct for ct in cell_types})
 
-            # Optional cell UMAP
-            cell_umap = None
-            if "umap" in cell_meta and "path" in cell_meta["umap"]:
-                cell_umap = pd.read_parquet(cell_meta["umap"]["path"])
+            cell_umap = cell_artifact["umap"]
 
-            # --- Load functionality embeddings from df_additional ---
-            additional_meta = dataset_meta.get("df_additional")
-            if additional_meta is None:
+            additional_artifact = loaded_artifacts.get("df_additional")
+            if additional_artifact is None:
                 print(f"No df_additional found for {dataset_name}, skipping")
                 continue
 
-            df_additional_emb = pd.read_parquet(additional_meta["path"])
-            df_additional_emb.index = df_additional_emb.index.astype(str)
-
-            # Load mapping for descriptions
-            mapping_path = additional_meta.get("annotation_map")
-            if mapping_path and Path(mapping_path).exists():
-                with open(mapping_path, "r") as f:
-                    additional_mapping = json.load(f)
-            else:
-                additional_mapping = {idx: idx for idx in df_additional_emb.index}
-
-            functionality_names = [additional_mapping[idx] for idx in df_additional_emb.index]
-            functionality_embeddings = df_additional_emb.values
+            additional_meta = additional_artifact["metadata"]
+            df_additional_emb = additional_artifact["dataframe"]
+            functionality_column = "data" if "data" in df_additional_emb.columns else annotation_column
+            functionality_names = df_additional_emb[functionality_column].tolist()
+            functionality_embeddings = df_additional_emb.drop(columns=[functionality_column]).values
 
             print(functionality_names)
 
@@ -103,7 +72,7 @@ def functionality_similarity(
                 model_name=model_name,
                 dataset_name=dataset_name,
                 evaluation_name="functionality_similarity",
-                timestamp=infer_run_timestamp(dataset_meta),
+                timestamp=loaded_dataset["run_timestamp"],
             )
 
             # --- Evaluate similarity per functionality embedding ---

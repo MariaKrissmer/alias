@@ -29,6 +29,7 @@ class GenEmbeddingsConfig:
     output_dir: Optional[str] = None
     max_cells: int = 20000
     index: bool = True
+    force_regenerate: bool = False
 
 def clean_model_name(model_name: str) -> str:
     """Clean the model name by removing special characters except alphanumerics and underscores."""
@@ -42,6 +43,62 @@ def resolve_artifact_root(output_dir: str | Path | None, category: str) -> Path:
     if base_dir.name == category:
         return base_dir
     return base_dir / category
+
+
+def build_embedding_reuse_config(
+    dataset_name: str,
+    model_name: str,
+    embedding_config: GenEmbeddingsConfig,
+) -> dict[str, Any]:
+    """Return the explicit config fields used to decide embedding reuse."""
+    return {
+        "dataset_name": dataset_name,
+        "model_name": clean_model_name(model_name),
+        "annotation_column": embedding_config.annotation_column,
+        "model_type": embedding_config.model_type,
+        "batch_size": embedding_config.batch_size,
+        "max_cells": embedding_config.max_cells,
+        "index": embedding_config.index,
+        "additional_data": list(embedding_config.additional_data or []),
+    }
+
+
+def build_embedding_reuse_signature(config_fields: dict[str, Any]) -> str:
+    """Build a stable string signature for reuse matching."""
+    return json.dumps(config_fields, sort_keys=True, separators=(",", ":"))
+
+
+def find_reusable_embedding_run(
+    embeddings_root: Path,
+    dataset_name: str,
+    model_name: str,
+    embedding_config: GenEmbeddingsConfig,
+) -> Path | None:
+    """Return a previous run directory with matching explicit config, if any."""
+    model_dir = embeddings_root / dataset_name / clean_model_name(model_name)
+    if not model_dir.exists():
+        return None
+
+    expected_fields = build_embedding_reuse_config(dataset_name, model_name, embedding_config)
+    expected_signature = build_embedding_reuse_signature(expected_fields)
+
+    candidate_dirs = sorted((path for path in model_dir.iterdir() if path.is_dir()), reverse=True)
+    for candidate in candidate_dirs:
+        metadata_path = candidate / "metadata.json"
+        if not metadata_path.exists():
+            continue
+
+        with metadata_path.open("r", encoding="utf-8") as handle:
+            metadata = json.load(handle)
+
+        stored_signature = metadata.get("reuse_signature")
+        stored_fields = metadata.get("reuse_config")
+        if stored_signature == expected_signature:
+            return candidate
+        if stored_signature is None and stored_fields == expected_fields:
+            return candidate
+
+    return None
 
 
 def sentence_transformer_embeddings(texts, st_model, embedding_config):
@@ -173,10 +230,82 @@ def load_saved_embeddings(
 
     return embedding_df
 
+
+def infer_embedding_run_timestamp(dataset_meta: dict[str, dict[str, Any]]) -> str | None:
+    """Infer the embedding run timestamp from saved artifact metadata."""
+    cell_meta = dataset_meta.get("df_cells", {})
+    if "run_dir" in cell_meta:
+        return Path(cell_meta["run_dir"]).name
+
+    cell_umap = cell_meta.get("umap", {})
+    if "path" in cell_umap:
+        return Path(cell_umap["path"]).parent.name
+    if "path" in cell_meta:
+        return Path(cell_meta["path"]).parent.name
+    return None
+
+
+def load_embedding_artifact(
+    artifact_meta: dict[str, Any],
+    annotation_column: str | None = None,
+) -> dict[str, Any]:
+    """Load one saved embedding artifact with optional annotations and UMAP."""
+    loaded_df = load_saved_embeddings(
+        artifact_meta["path"],
+        artifact_meta.get("annotation_map"),
+        annotation_column=annotation_column,
+    )
+    if not isinstance(loaded_df, pd.DataFrame):
+        raise TypeError("Expected a parquet-backed embedding artifact.")
+
+    umap_df = None
+    umap_meta = artifact_meta.get("umap")
+    if isinstance(umap_meta, dict) and umap_meta.get("path"):
+        umap_df = pd.read_parquet(umap_meta["path"])
+
+    return {
+        "dataframe": loaded_df,
+        "umap": umap_df,
+        "metadata": dict(artifact_meta),
+    }
+
+
+def load_dataset_embedding_artifacts(
+    dataset_meta: dict[str, dict[str, Any]],
+    annotation_column: str | None = None,
+) -> dict[str, Any]:
+    """Load all parquet-backed embedding artifacts for one dataset entry."""
+    artifacts: dict[str, dict[str, Any]] = {}
+
+    for artifact_name, artifact_meta in dataset_meta.items():
+        if not isinstance(artifact_meta, dict) or "path" not in artifact_meta:
+            continue
+
+        artifact_annotation_column = annotation_column if artifact_name == "df_cells" else None
+        artifacts[artifact_name] = load_embedding_artifact(
+            artifact_meta,
+            annotation_column=artifact_annotation_column,
+        )
+
+    return {
+        "artifacts": artifacts,
+        "run_timestamp": infer_embedding_run_timestamp(dataset_meta),
+    }
+
 def load_embedding_model(model_name: str):
     from alias.util.load_hf_model import load_model
 
     return load_model(model_name)
+
+
+def load_embedding_run_metadata(run_dir: Path | str) -> dict[str, Any]:
+    """Load one embedding run's saved artifact metadata."""
+    loaded = load_saved_embeddings(run_dir)
+    if isinstance(loaded, dict) and len(loaded) == 1:
+        return next(iter(loaded.values()))
+    if isinstance(loaded, dict):
+        return loaded
+    raise TypeError("Expected embedding run metadata when loading a run directory.")
 
 def generate_embeddings(
     evaluation_dict: Dict[str, Dict[str, Any]],
@@ -198,12 +327,26 @@ def generate_embeddings(
 
     for model_name in tqdm(embedding_config.embedding_models, desc="Embedding Models"):
         print(f"\n Generating embeddings with model: {model_name}")
-        st_model = load_embedding_model(model_name)
         cleaned_name = clean_model_name(model_name)
         model_metadata = {}
         embeddings_root = resolve_artifact_root(embedding_config.output_dir, "embeddings")
 
         for dataset_name, dataset_dfs in dfs_dict.items():
+            reuse_fields = build_embedding_reuse_config(dataset_name, model_name, embedding_config)
+            reuse_signature = build_embedding_reuse_signature(reuse_fields)
+            if not embedding_config.force_regenerate:
+                reusable_run = find_reusable_embedding_run(
+                    embeddings_root=embeddings_root,
+                    dataset_name=dataset_name,
+                    model_name=model_name,
+                    embedding_config=embedding_config,
+                )
+                if reusable_run is not None:
+                    print(f"Reusing embeddings from {reusable_run}")
+                    model_metadata[dataset_name] = load_embedding_run_metadata(reusable_run)
+                    continue
+
+            st_model = load_embedding_model(model_name)
             run_dir = create_run_directory(
                 root_dir=embeddings_root,
                 category="",
@@ -264,6 +407,8 @@ def generate_embeddings(
                     "model_name": cleaned_name,
                     "annotation_column": embedding_config.annotation_column,
                     "run_timestamp": Path(run_dir).name,
+                    "reuse_config": reuse_fields,
+                    "reuse_signature": reuse_signature,
                     "artifacts": dataset_metadata,
                 },
             )
