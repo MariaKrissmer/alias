@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -11,7 +9,7 @@ import scanpy as sc
 import seaborn as sns
 
 from alias.evaluation.celltype_label_plots import EvaluationConfig, compute_umap
-from alias.evaluation.embedding import load_dataset_embedding_artifacts
+from alias.evaluation.embedding import load_dataset_embedding_artifacts, load_embedding_model
 from alias.util.artifacts import create_evaluation_run_directory, write_metadata
 from alias.util.plots.umap_plots import UMAPCellPlotter
 from alias.util.similarity import evaluate_similarity_meta
@@ -134,10 +132,18 @@ def _prepare_umap_frames(
 def _load_disease_embeddings(
     loaded_artifacts: dict[str, dict[str, Any]],
     disease_strings: list[str],
+    model_name: str | None = None,
 ) -> list[tuple[int, str, np.ndarray]]:
     additional_artifact = loaded_artifacts.get("df_additional")
     if additional_artifact is None:
-        raise ValueError("Disease comparison requires saved `df_additional` embeddings.")
+        if model_name is None:
+            raise ValueError("Disease comparison requires saved `df_additional` embeddings` or a model name.")
+        model = load_embedding_model(model_name)
+        encoded = np.asarray(model.encode(disease_strings), dtype=np.float32)
+        return [
+            (disease_idx, disease_str, encoded[disease_idx - 1].reshape(1, -1))
+            for disease_idx, disease_str in enumerate(disease_strings, start=1)
+        ]
 
     df_additional = additional_artifact["dataframe"].copy()
     label_column = "data" if "data" in df_additional.columns else None
@@ -336,6 +342,7 @@ def disease_comparison(
 
     for saved_model_name, model_data in embeddings_dict.items():
         for dataset_name, dataset_meta in model_data.items():
+            resolved_model_name = _resolve_model_name(saved_model_name, config, layers_config)
             loaded_dataset = load_dataset_embedding_artifacts(dataset_meta, annotation_column=annotation_column)
             loaded_artifacts = loaded_dataset["artifacts"]
             if "df_cells" not in loaded_artifacts or "df_celltypes" not in loaded_artifacts:
@@ -388,7 +395,11 @@ def disease_comparison(
             centroid_features = _extract_embedding_frame(df_centroids, metadata_columns={annotation_column})
             df_centroids_work = df_centroids_umap.copy()
             df_centroids_work["embedding"] = centroid_features["embedding"]
-            disease_embeddings = _load_disease_embeddings(loaded_artifacts, config.disease_strings)
+            disease_embeddings = _load_disease_embeddings(
+                loaded_artifacts,
+                config.disease_strings,
+                model_name=resolved_model_name,
+            )
 
             dataset_results: list[dict[str, Any]] = []
             for disease_idx, disease_str, disease_emb in disease_embeddings:
