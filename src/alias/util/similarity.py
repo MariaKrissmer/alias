@@ -4,8 +4,17 @@ import re
 from pathlib import Path
 from sentence_transformers import util
 from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+from scipy.stats import mannwhitneyu
 
 from .plots.umap_plots import UMAPCellPlotter
+
+
+def _compute_roc(scores: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, np.ndarray, float, np.ndarray]:
+    """Compute ROC curve, AUC, and thresholds for one binary label."""
+    fpr, tpr, thresholds = roc_curve(mask, scores)
+    roc_auc = auc(fpr, tpr)
+    return fpr, tpr, roc_auc, thresholds
 
 
 def evaluate_similarity(
@@ -107,3 +116,104 @@ def evaluate_similarity(
 
     results_df = pd.DataFrame(results)
     return results_df, sim_matrix
+
+def evaluate_similarity_meta(
+    df_cells: pd.DataFrame,
+    df_centroids: pd.DataFrame,
+    out_dir: Path,
+    *,
+    disease_emb: np.ndarray,
+    label_key: str,
+    bins: int = 60,
+    similarity_metric: str = "cosine",
+    **kw,
+) -> dict[str, object]:
+    """
+    Evaluate one disease embedding against cells of a single cell type.
+
+    Expects `df_cells` to contain:
+    - `embedding`
+    - `UMAP1`
+    - `UMAP2`
+    - `label_key`
+    """
+    roc_dir = out_dir / label_key / "roc_curves"
+    umap_dir = out_dir / label_key / "umap"
+    hist_dir = out_dir / label_key / "histograms"
+
+    for d in [roc_dir, umap_dir, hist_dir]:
+        d.mkdir(parents=True, exist_ok=True)
+
+    emb1 = np.vstack(df_cells["embedding"].values).astype(np.float32)
+    mask = df_cells[label_key].astype(bool).to_numpy()
+
+    if similarity_metric == "cosine":
+        sim = util.cos_sim(emb1, disease_emb)
+    elif similarity_metric == "dot":
+        sim = emb1 @ np.asarray(disease_emb).T
+    else:
+        raise ValueError(f"Unknown similarity metric: {similarity_metric}")
+
+    fpr, tpr, roc_auc, thresholds = _compute_roc(np.ravel(sim), mask)
+
+    plotter = UMAPCellPlotter()
+    df_roc = pd.DataFrame({"fpr": fpr, "tpr": tpr, "auc": roc_auc})
+    plotter.plot_roc(df_roc, output_path=(roc_dir / f"{str(label_key)}.pdf"), title=str(label_key))
+
+    df_umap = pd.DataFrame(
+        {
+            "UMAP1": df_cells["UMAP1"],
+            "UMAP2": df_cells["UMAP2"],
+            "Similarity Score": np.ravel(sim),
+        },
+        index=df_cells.index,
+    )
+    plotter.annotate_centroids = True
+    plotter.plot_cells(
+        df=df_umap,
+        continuous_color_column="Similarity Score",
+        output_path=umap_dir / f"{str(label_key)}.pdf",
+        title=str(label_key),
+        annotate_centroids_df=df_centroids,
+    )
+
+    sim = np.ravel(np.asarray(sim))
+    sim_disease = sim[mask]
+    sim_other = sim[~mask]
+
+    df_hist = pd.concat(
+        [
+            pd.DataFrame({"similarity": sim_disease, "group": label_key}),
+            pd.DataFrame({"similarity": sim_other, "group": "other"}),
+        ],
+        ignore_index=True,
+    )
+    plotter.plot_similarity_histogram(
+        df=df_hist,
+        label=str(label_key),
+        output_path=hist_dir / f"{str(label_key)}.pdf",
+        bins=bins,
+    )
+
+    mw_stat, mw_p = mannwhitneyu(sim_disease, sim_other, alternative="two-sided")
+    print(f"[{label_key}] Mann–Whitney U: U={mw_stat:.3f}, p={mw_p:.16g}")
+
+    j_stat = tpr - fpr
+    best_thresh = thresholds[np.argmax(j_stat)]
+    print(f"[{label_key}] Optimal threshold (Youden’s J): {best_thresh:.3f}")
+
+    df_sim = df_cells.copy()
+    if -1 <= best_thresh <= 1:
+        df_sim["associated"] = sim >= best_thresh
+
+    return {
+        "cell_type": kw.get("annotation_column_value", "unknown"),
+        "label": label_key,
+        "mw_stat": mw_stat,
+        "mw_p": mw_p,
+        "mean_sim_disease": float(np.mean(sim_disease)),
+        "mean_sim_other": float(np.mean(sim_other)),
+        "best_thresh": float(best_thresh),
+        "roc_auc": float(roc_auc),
+        "df_sim": df_sim,
+    }

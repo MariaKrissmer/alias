@@ -3,10 +3,9 @@ from dataclasses import dataclass
 from typing import Dict, Any
 import pandas as pd
 import numpy as np
-from sklearn.decomposition import PCA
-import umap
-from alias.util.plots.umap_plots import UMAPCellPlotter
 import json
+
+from alias.util.artifacts import create_evaluation_run_directory, write_metadata
 
 @dataclass
 class EvaluationConfig:
@@ -20,6 +19,9 @@ def compute_umap(embeddings: np.ndarray, evaluation_config: EvaluationConfig, n_
     """
     Compute PCA followed by UMAP for dimensionality reduction.
     """
+    from sklearn.decomposition import PCA
+    import umap
+
     if embeddings.shape[0] == 0:
         raise ValueError("No embeddings provided for UMAP computation.")
     
@@ -40,6 +42,12 @@ def compute_umap(embeddings: np.ndarray, evaluation_config: EvaluationConfig, n_
     )
     return umap_model.fit_transform(embeddings_pca)
 
+
+def get_umap_plotter_class():
+    from alias.util.plots.umap_plots import UMAPCellPlotter
+
+    return UMAPCellPlotter
+
 def umap_plots(
     embeddings_dict: Dict[str, Dict[str, Dict[str, Any]]],
     annotation_column: str,
@@ -50,24 +58,31 @@ def umap_plots(
     Generate UMAP plots for all models and datasets, save UMAP coordinates
     next to embeddings, and update embeddings_dict with UMAP paths.
     """
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    figure_root = Path(output_dir)
 
     for model_name, model_data in embeddings_dict.items():
         print(f"Evaluating model: {model_name}")
-        model_dir = output_dir / model_name
-        model_dir.mkdir(exist_ok=True)
 
         for dataset_name, dataset_meta in model_data.items():
             print(f"Processing dataset: {dataset_name}")
-            dataset_dir = model_dir / dataset_name
-            dataset_dir.mkdir(exist_ok=True)
 
             # --- Load cell embeddings ---
             cell_info = dataset_meta.get("df_cells")
             if cell_info is None or "path" not in cell_info:
                 print(f"⚠️ Skipping dataset {dataset_name}: no cell embeddings found.")
                 continue
+
+            embedding_run_dir = Path(cell_info["path"]).parent
+            run_timestamp = embedding_run_dir.name
+            figure_run_dir = create_evaluation_run_directory(
+                output_dir=figure_root,
+                model_name=model_name,
+                dataset_name=dataset_name,
+                evaluation_name="celltype_label_plots",
+                timestamp=run_timestamp,
+            )
+            derived_umap_dir = embedding_run_dir / "umap" / "celltype_label_plots" / figure_run_dir.name
+            derived_umap_dir.mkdir(parents=True, exist_ok=False)
 
             df_cells_emb = pd.read_parquet(cell_info["path"])
             df_cells_emb.index = df_cells_emb.index.astype(str)
@@ -139,8 +154,7 @@ def umap_plots(
                 df_centroids_umap = df_centroids_umap.rename(columns={annotation_column: "cell_type"}).reset_index(drop=True)
                
             # --- Save UMAP coordinates ---
-            emb_dir = Path(cell_info["path"]).parent
-            umap_cells_path = emb_dir / "df_cells_umap.parquet"
+            umap_cells_path = derived_umap_dir / "df_cells_umap.parquet"
             df_cells_umap.to_parquet(umap_cells_path, index=True)
             embeddings_dict[model_name][dataset_name]["df_cells"]["umap"] = {
                 "path": str(umap_cells_path),
@@ -148,7 +162,7 @@ def umap_plots(
             }
 
             if df_centroids_umap is not None:
-                umap_centroids_path = emb_dir / "df_celltypes_umap.parquet"
+                umap_centroids_path = derived_umap_dir / "df_celltypes_umap.parquet"
                 df_centroids_umap.to_parquet(umap_centroids_path, index=True)
                 embeddings_dict[model_name][dataset_name]["df_celltypes"]["umap"] = {
                     "path": str(umap_centroids_path),
@@ -156,14 +170,14 @@ def umap_plots(
                 }
 
             # --- Plotting ---
-            plotter = UMAPCellPlotter()
+            plotter = get_umap_plotter_class()()
 
             # Cells colored by annotation
             plotter.annotate_centroids = False
             plotter.plot_cells(
                 df_cells_umap,
                 annotation_column=annotation_column,
-                output_path=dataset_dir / "cells_colored_by_annotation.svg",
+                output_path=figure_run_dir / "cells_colored_by_annotation.svg",
                 title="Cells Colored by Annotation",
             )
 
@@ -174,9 +188,27 @@ def umap_plots(
                     df_cells_umap,
                     annotation_column=annotation_column,
                     annotate_centroids_df=df_centroids_umap,
-                    output_path=dataset_dir / "cells_with_celltype_labels.svg",
+                    output_path=figure_run_dir / "cells_with_celltype_labels.svg",
                     title="Cells with Cell Type Labels",
                 )
+
+            write_metadata(
+                figure_run_dir,
+                {
+                    "dataset_name": dataset_name,
+                    "model_name": model_name,
+                    "evaluation_name": "celltype_label_plots",
+                    "run_timestamp": figure_run_dir.name,
+                    "embedding_run_dir": str(embedding_run_dir),
+                    "umap_run_dir": str(derived_umap_dir),
+                    "artifacts": {
+                        "df_cells_umap": embeddings_dict[model_name][dataset_name]["df_cells"]["umap"],
+                        "df_celltypes_umap": embeddings_dict[model_name][dataset_name]
+                        .get("df_celltypes", {})
+                        .get("umap"),
+                    },
+                },
+            )
 
             print(f"✅ Saved UMAP coords and plots for {model_name} / {dataset_name}\n")
 

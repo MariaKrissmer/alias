@@ -1,10 +1,10 @@
 import pandas as pd
-import numpy as np
 from pathlib import Path
 from dataclasses import dataclass
 from alias.util.similarity import evaluate_similarity
-from alias.util.plots.umap_plots import UMAPCellPlotter
-import json
+
+from alias.util.artifacts import create_evaluation_run_directory, write_metadata
+from alias.evaluation.embedding import load_dataset_embedding_artifacts
 
 
 @dataclass
@@ -12,7 +12,6 @@ class CellTypeSimilarityConfig:
     similarity_metric: str = "cosine"
     bins: int = 60
     output_dir: Path = Path(".")  # base folder for evaluation_plots
-
 
 def cell_type_label_similarity(
     embeddings_dict: dict,
@@ -33,60 +32,40 @@ def cell_type_label_similarity(
         for dataset_name, dataset_meta in model_data.items():
             print(f"Processing dataset: {dataset_name}")
 
-            # --- Load cell embeddings ---
-            cell_meta = dataset_meta["df_cells"]
-            cell_df = pd.read_parquet(cell_meta["path"])
-            cell_df.index = cell_df.index.astype(str)
+            loaded_dataset = load_dataset_embedding_artifacts(
+                dataset_meta,
+                annotation_column=annotation_column,
+            )
+            loaded_artifacts = loaded_dataset["artifacts"]
 
-            # Load annotations from JSON if present
-            ann_path = cell_meta.get("annotation_map")
-            if ann_path and Path(ann_path).exists():
-                with open(ann_path, "r") as f:
-                    annotation_map_full = json.load(f)
-                # Extract the dict for the specific annotation column
-                annotation_map = annotation_map_full.get(annotation_column, {})
-                cell_df[annotation_column] = cell_df.index.map(
-                    lambda idx: annotation_map.get(idx, "unknown")
-                )
-            elif annotation_column not in cell_df.columns:
-                cell_df[annotation_column] = "unknown"
+            cell_artifact = loaded_artifacts["df_cells"]
+            cell_meta = cell_artifact["metadata"]
+            cell_df = cell_artifact["dataframe"]
 
             cell_embeddings = cell_df.drop(columns=[annotation_column]).values
             cell_annotations = cell_df[annotation_column]
 
-            # --- Load cell type embeddings ---
-            label_meta = dataset_meta.get("df_celltypes")
-            if label_meta is None:
+            label_artifact = loaded_artifacts.get("df_celltypes")
+            if label_artifact is None:
                 continue
 
-            df_celltypes_emb = pd.read_parquet(label_meta["path"])
-            df_celltypes_emb.index = df_celltypes_emb.index.astype(str)
+            run_dir = create_evaluation_run_directory(
+                output_dir=config.output_dir,
+                model_name=model_name,
+                dataset_name=dataset_name,
+                evaluation_name="celltype_label_similarity",
+                timestamp=loaded_dataset["run_timestamp"],
+            )
+            dataset_results = []
 
-            # Load annotations for cell types
-            ann_path = label_meta.get("annotation_map")
-            if ann_path and Path(ann_path).exists():
-                with open(ann_path, "r") as f:
-                    annotation_map = json.load(f)
-                df_celltypes_emb[annotation_column] = df_celltypes_emb.index.map(
-                    lambda idx: annotation_map.get(idx, "unknown")  # <- direct value
-                )
+            label_meta = label_artifact["metadata"]
+            df_celltypes_emb = label_artifact["dataframe"]
+            label_column = annotation_column if annotation_column in df_celltypes_emb.columns else "cell_type"
 
-            label_embeddings = df_celltypes_emb.drop(columns=[annotation_column]).values
-            cell_type_labels = df_celltypes_emb[annotation_column].tolist()
-
-            # --- Load optional UMAPs ---
-            cell_umap_dict = {}
-            cell_type_umap_dict = {}
-            for key, val in dataset_meta.items():
-                if isinstance(val, dict) and "umap" in val:
-                    if key == "df_cells":
-                        cell_umap_dict[key] = pd.read_parquet(val["umap"]["path"])
-                    elif key == "df_celltypes":
-                        cell_type_umap_dict[key] = pd.read_parquet(val["umap"]["path"])
-
-            # --- Prepare output directory ---
-            base_out = Path(config.output_dir) / model_name / dataset_name / "celltype_label_similarity"
-            base_out.mkdir(parents=True, exist_ok=True)
+            label_embeddings = df_celltypes_emb.drop(columns=[label_column]).values
+            cell_type_labels = df_celltypes_emb[label_column].tolist()
+            cell_umap = cell_artifact["umap"]
+            cell_type_umap = label_artifact["umap"]
 
             # --- Evaluate similarity per cell type ---
             for i, cell_type in enumerate(cell_type_labels):
@@ -95,11 +74,9 @@ def cell_type_label_similarity(
                 other_embedding = label_embeddings[i].reshape(1, -1)
                 other_label = [cell_type]
 
-                # Select UMAPs if available
-                cell_umap = next(iter(cell_umap_dict.values()), None)
-                cell_type_umap = None
-                if cell_type_umap_dict:
-                    cell_type_umap = next(iter(cell_type_umap_dict.values())).iloc[[i]]
+                selected_cell_type_umap = None
+                if cell_type_umap is not None:
+                    selected_cell_type_umap = cell_type_umap.iloc[[i]]
 
                 results_df, _ = evaluate_similarity(
                     cell_embeddings=cell_embeddings,
@@ -107,9 +84,9 @@ def cell_type_label_similarity(
                     other_labels=other_label,
                     ground_truth=ground_truth,
                     cell_umap=cell_umap,
-                    other_umap=cell_type_umap,
+                    other_umap=selected_cell_type_umap,
                     similarity_metric=config.similarity_metric,
-                    output_dir=base_out,
+                    output_dir=run_dir,
                     bins=config.bins
                 )
 
@@ -119,6 +96,26 @@ def cell_type_label_similarity(
                 results_df["cell_type"] = cell_type
 
                 all_results.append(results_df)
+                dataset_results.append(results_df)
+
+            if dataset_results:
+                combined_dataset_results = pd.concat(dataset_results, ignore_index=True)
+                results_path = run_dir / "results_df.csv"
+                combined_dataset_results.to_csv(results_path, index=False)
+                write_metadata(
+                    run_dir,
+                    {
+                        "evaluation_name": "celltype_label_similarity",
+                        "model_name": model_name,
+                        "dataset_name": dataset_name,
+                        "run_timestamp": run_dir.name,
+                        "embedding_run_dir": cell_meta.get("run_dir"),
+                        "cell_umap_path": cell_meta.get("umap", {}).get("path"),
+                        "celltype_umap_path": dataset_meta.get("df_celltypes", {}).get("umap", {}).get("path"),
+                        "results_path": str(results_path),
+                        "n_rows": len(combined_dataset_results),
+                    },
+                )
 
     combined_results = pd.concat(all_results, ignore_index=True)
     return combined_results
