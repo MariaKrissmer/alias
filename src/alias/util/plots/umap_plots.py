@@ -137,6 +137,8 @@ class UMAPCellPlotter:
         continuous_color_column=None,
         time_color_column=None,
         gene_exp_color_column=None, 
+        vmin=None,
+        vmax=None,
         output_path=None,
         annotate_centroids_df=None,
         title=None,
@@ -235,8 +237,8 @@ class UMAPCellPlotter:
                 
                 color_col = continuous_color_column or time_color_column
                 cmap = self.simmap if continuous_color_column else self.timemap
-                vmin = -1 if continuous_color_column else 0
-                vmax = 1 if continuous_color_column else 1
+                color_vmin = vmin if vmin is not None else (-1 if continuous_color_column else 0)
+                color_vmax = vmax if vmax is not None else 1
 
                 # Create side colorbar axis
                 divider = make_axes_locatable(ax)
@@ -246,7 +248,7 @@ class UMAPCellPlotter:
                     df["UMAP1"], df["UMAP2"],
                     c=df[color_col],
                     cmap=cmap,
-                    vmin=vmin, vmax=vmax,
+                    vmin=color_vmin, vmax=color_vmax,
                     s=self.point_size / 2,
                     alpha=0.7,
                     linewidth=0
@@ -256,7 +258,7 @@ class UMAPCellPlotter:
                     coll.set_rasterized(True)
 
                 cbar = fig.colorbar(scatter, cax=cax)
-                ticks = np.linspace(vmin, vmax, 5)
+                ticks = np.linspace(color_vmin, color_vmax, 5)
                 cbar.set_ticks(ticks)
                 cbar.set_ticklabels([f"{v:.0f}" for v in ticks])
                 cbar.set_label(color_col.replace("_", " ").title())
@@ -267,8 +269,8 @@ class UMAPCellPlotter:
 
                 color_col = gene_exp_color_column
                 cmap = self.genexpmap
-                vmin = 0
-                vmax = 6
+                color_vmin = vmin if vmin is not None else 0
+                color_vmax = vmax if vmax is not None else 6
 
                 # Create side colorbar axis
                 divider = make_axes_locatable(ax)
@@ -278,7 +280,8 @@ class UMAPCellPlotter:
                     df["UMAP1"], df["UMAP2"],
                     c=df[color_col],
                     cmap=cmap,
-                    vmin=vmin,vmax=vmax,
+                    vmin=color_vmin,
+                    vmax=color_vmax,
                     s=self.point_size / 2,
                     alpha=0.7,
                     linewidth=0
@@ -288,7 +291,7 @@ class UMAPCellPlotter:
                     coll.set_rasterized(True)
 
                 cbar = fig.colorbar(scatter, cax=cax)
-                ticks = np.linspace(vmin, vmax, 5)
+                ticks = np.linspace(color_vmin, color_vmax, 5)
                 cbar.set_ticks(ticks)
                 cbar.set_ticklabels([f"{v:.0f}" for v in ticks])
                 cbar.set_label(color_col.replace("_", " ").title())

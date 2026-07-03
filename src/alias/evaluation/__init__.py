@@ -21,6 +21,12 @@ except Exception:  # Optional until the migration lands.
     DiseaseComparisonConfig = None
     disease_comparison = None
 
+try:
+    from .pseudotime import PseudotimeConfig, pseudotime
+except Exception:  # Optional until the migration lands.
+    PseudotimeConfig = None
+    pseudotime = None
+
 # Optional: define what is publicly available
 __all__ = [
     "GenEmbeddingsConfig",
@@ -42,5 +48,13 @@ if DiseaseComparisonConfig is not None and disease_comparison is not None:
         [
             "DiseaseComparisonConfig",
             "disease_comparison",
+        ]
+    )
+
+if PseudotimeConfig is not None and pseudotime is not None:
+    __all__.extend(
+        [
+            "PseudotimeConfig",
+            "pseudotime",
         ]
     )
