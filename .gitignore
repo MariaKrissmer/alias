@@ -60,6 +60,7 @@ notebooks/models
 .pytest_cache/
 .coverage
 htmlcov/
+tests/test_hexb_subset_script.py
 
 # uv
 .uv/
@@ -70,4 +71,3 @@ scripts/
 # Data, embeddings and figures from the demo notebook
 notebooks/data/
 notebooks/embeddings/
-
