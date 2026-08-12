@@ -7,9 +7,8 @@ This is a first version of the codebase corresponding to our PrePrint [(bioRxiv)
 
 ![](images/concept.png)
 
-This branch contains the public reproducibility workflows for the manuscript's HIAI T-cell ablation study. It covers the six ablation models (`MB`, `MJ`, `MG`, `MF`, `MH`, and `MI`) and the PubMedBERT baseline. LaManno, CMV, PBMC3k, LLM, and scIB workflows are maintained separately and are not part of this release.
+This branch contains the public reproducibility workflows for the manuscript's HIAI T-cell ablation study. It covers the six ablation models (`MA`, `MA*`, `MB`, `MC`, `MC*`, and `MD`) and the PubMedBERT baseline. 
 
-No code in this branch may be changed without approval before the reproducibility release is finalized.
 
 ## Setup
 
@@ -28,7 +27,7 @@ cp .env.example .env
 
 ### Environment Variables
 
-The project requires Hugging Face tokens for accessing and uploading models/datasets.
+The project requires Hugging Face tokens for accessing and uploading models/datasets, if own models are trained and saved. Models that are part of the manuscript, will be uploaded to public Hugging Face and will be available for usage shortly. 
 
 **Quick setup:**
 ```bash
