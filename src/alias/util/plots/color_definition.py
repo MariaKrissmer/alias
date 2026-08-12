@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, to_hex
 import matplotlib.colors as mcolors
+import seaborn as sns
 
 # Load base colormap
 tab20c = plt.get_cmap('tab20c')
@@ -65,6 +66,9 @@ COLORMAPS = {
     "CM: Orange–White": LinearSegmentedColormap.from_list(
         "orange_white", ['#ffffff', orange[0]]
     ),
+    "Blues": plt.get_cmap("Blues"),
+    "Reds": plt.get_cmap("Reds"),
+    "magma": plt.get_cmap("magma"),
 }
 
 def get_gradient(start_hex, end_hex, n=5):
@@ -85,6 +89,11 @@ for i in range(1, 5):
 # Export for external use
 CATEGORICAL_PALETTES = tabc
 
+PBMC3K_CS_LENGTH_ROPU = [
+    mcolors.to_hex(color)
+    for color in sns.color_palette("RdPu", n_colors=5)
+]
+
 
 # Step 1: Get all 20 tab20 colors
 tab20 = list(plt.get_cmap('tab20').colors)
@@ -97,6 +106,13 @@ hex_colors = [mcolors.to_hex(c) for c in filtered_colors]
 
 tab20_new = [mcolors.to_hex(c) for c in filtered_colors]
 
+TAB20_BROWN = mcolors.to_hex(tab20[10])
+TAB20_PINK = mcolors.to_hex(tab20[12])
+VARIANCE_ASSESSMENT_COLORS = {
+    "pcs": TAB20_BROWN,
+    "genes": TAB20_PINK,
+}
+
 
 # Boolean color mapping (stored separately, not a palette)
 TRUE_FALSE_COLORS = {
@@ -104,4 +120,11 @@ TRUE_FALSE_COLORS = {
     False: tabc["tabc1"][1],  # orange[0]
 }
 
+DEG_COMPARISON_COLORS = [orange[0], orange[-1]]
+DISTRIBUTION_DIFFERENCE_COLORS = {
+    "significant": plt.get_cmap("tab20b").colors[14],
+    "nonsignificant": "0.72",
+}
+
 CATEGORICAL_PALETTES["tab20_new"] = tab20_new
+CATEGORICAL_PALETTES["pbmc3k_cs_length_ropu"] = PBMC3K_CS_LENGTH_ROPU

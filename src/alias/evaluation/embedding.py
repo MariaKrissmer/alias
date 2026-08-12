@@ -30,11 +30,19 @@ class GenEmbeddingsConfig:
     max_cells: int = 20000
     index: bool = True
     force_regenerate: bool = False
+    model_output_names: Optional[Dict[str, str]] = None
 
 def clean_model_name(model_name: str) -> str:
     """Clean the model name by removing special characters except alphanumerics and underscores."""
     last_part = Path(model_name).name
     return re.sub(r"[^\w\d_]", "", last_part)
+
+
+def output_model_name(model_name: str, embedding_config: GenEmbeddingsConfig) -> str:
+    """Return the saved model key/path component for an embedding model."""
+    if embedding_config.model_output_names and model_name in embedding_config.model_output_names:
+        return clean_model_name(embedding_config.model_output_names[model_name])
+    return clean_model_name(model_name)
 
 
 def resolve_artifact_root(output_dir: str | Path | None, category: str) -> Path:
@@ -53,7 +61,7 @@ def build_embedding_reuse_config(
     """Return the explicit config fields used to decide embedding reuse."""
     return {
         "dataset_name": dataset_name,
-        "model_name": clean_model_name(model_name),
+        "model_name": output_model_name(model_name, embedding_config),
         "annotation_column": embedding_config.annotation_column,
         "model_type": embedding_config.model_type,
         "batch_size": embedding_config.batch_size,
@@ -75,7 +83,7 @@ def find_reusable_embedding_run(
     embedding_config: GenEmbeddingsConfig,
 ) -> Path | None:
     """Return a previous run directory with matching explicit config, if any."""
-    model_dir = embeddings_root / dataset_name / clean_model_name(model_name)
+    model_dir = embeddings_root / dataset_name / output_model_name(model_name, embedding_config)
     if not model_dir.exists():
         return None
 
@@ -101,10 +109,11 @@ def find_reusable_embedding_run(
     return None
 
 
-def sentence_transformer_embeddings(texts, st_model, embedding_config):
+def sentence_transformer_embeddings(texts, st_model, embedding_config, *, batch_size: int | None = None):
     """Generate embeddings for a batch of texts using a SentenceTransformer."""
+    effective_batch_size = batch_size if batch_size is not None else embedding_config.batch_size
     try:
-        return st_model.encode(texts, batch_size=embedding_config.batch_size, show_progress_bar=True)
+        return st_model.encode(texts, batch_size=effective_batch_size, show_progress_bar=True)
     except Exception as e:
         print(f"⚠️ Error generating batch embeddings: {e}")
         return np.zeros((len(texts), st_model.get_sentence_embedding_dimension()))
@@ -307,6 +316,94 @@ def load_embedding_run_metadata(run_dir: Path | str) -> dict[str, Any]:
         return loaded
     raise TypeError("Expected embedding run metadata when loading a run directory.")
 
+
+def generate_celltype_label_embedding_variant(
+    dataset_meta: dict[str, dict[str, Any]],
+    model_name: str,
+    embedding_config: GenEmbeddingsConfig,
+    dataset_name: str,
+    label_batch_size: int,
+    timestamp: str | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Regenerate only df_celltypes while reusing the rest of an embedding run."""
+    loaded_dataset = load_dataset_embedding_artifacts(
+        dataset_meta,
+        annotation_column=embedding_config.annotation_column,
+    )
+    loaded_artifacts = loaded_dataset["artifacts"]
+    if "df_celltypes" not in loaded_artifacts:
+        raise KeyError("dataset_meta does not contain a df_celltypes embedding artifact.")
+
+    df_celltypes = loaded_artifacts["df_celltypes"]["dataframe"].copy()
+    label_column = embedding_config.annotation_column
+    if label_column not in df_celltypes.columns:
+        label_column = "cell_type"
+    if label_column not in df_celltypes.columns:
+        raise KeyError(
+            "df_celltypes artifact must contain either the annotation column "
+            f"`{embedding_config.annotation_column}` or `cell_type`."
+        )
+
+    texts = df_celltypes[label_column].astype(str).tolist()
+    st_model = load_embedding_model(model_name)
+    emb = sentence_transformer_embeddings(
+        texts,
+        st_model,
+        embedding_config,
+        batch_size=label_batch_size,
+    )
+
+    emb_df = pd.DataFrame(np.array(emb))
+    emb_df.index = df_celltypes.index
+    emb_df.index.name = "cell_id"
+
+    embeddings_root = resolve_artifact_root(embedding_config.output_dir, "embeddings")
+    run_dir = create_run_directory(
+        root_dir=embeddings_root,
+        category="",
+        dataset_name=dataset_name,
+        model_name=clean_model_name(model_name),
+        evaluation_name=f"df_celltypes_label_batch_{label_batch_size}",
+        timestamp=timestamp,
+    )
+    meta_info = save_embedding_frame(
+        run_dir,
+        "df_celltypes",
+        emb_df,
+        annotation_map=df_celltypes[label_column].astype(str).to_dict(),
+        annotation_file_name="df_celltypes_annotations.json",
+    )
+    meta_info.update(
+        {
+            "dataset": dataset_name,
+            "entity_type": "df_celltypes",
+            "column": label_column,
+            "run_dir": str(run_dir),
+            "label_batch_size": label_batch_size,
+            "source_embedding_run_timestamp": loaded_dataset["run_timestamp"],
+            "source_cell_embedding_run_dir": dataset_meta.get("df_cells", {}).get("run_dir"),
+        }
+    )
+
+    variant_meta = dict(dataset_meta)
+    variant_meta["df_celltypes"] = meta_info
+    write_metadata(
+        run_dir,
+        {
+            "dataset_name": dataset_name,
+            "model_name": clean_model_name(model_name),
+            "annotation_column": embedding_config.annotation_column,
+            "run_timestamp": Path(run_dir).name,
+            "evaluation_name": "df_celltypes_label_batch_variant",
+            "label_batch_size": label_batch_size,
+            "source_embedding_run_timestamp": loaded_dataset["run_timestamp"],
+            "source_cell_embedding_run_dir": dataset_meta.get("df_cells", {}).get("run_dir"),
+            "artifacts": {"df_celltypes": meta_info},
+        },
+    )
+    return variant_meta
+
+
 def generate_embeddings(
     evaluation_dict: Dict[str, Dict[str, Any]],
     embedding_config: GenEmbeddingsConfig,
@@ -327,7 +424,7 @@ def generate_embeddings(
 
     for model_name in tqdm(embedding_config.embedding_models, desc="Embedding Models"):
         print(f"\n Generating embeddings with model: {model_name}")
-        cleaned_name = clean_model_name(model_name)
+        cleaned_name = output_model_name(model_name, embedding_config)
         model_metadata = {}
         embeddings_root = resolve_artifact_root(embedding_config.output_dir, "embeddings")
 
@@ -351,7 +448,7 @@ def generate_embeddings(
                 root_dir=embeddings_root,
                 category="",
                 dataset_name=dataset_name,
-                model_name=cleaned_name,
+                    model_name=cleaned_name,
                 timestamp=run_timestamp,
             )
             dataset_metadata = {}
@@ -360,7 +457,11 @@ def generate_embeddings(
                 texts = df[column_name].astype(str).tolist()
                 print(f"Encoding {key} ({len(texts)} samples)")
                 
-                emb = sentence_transformer_embeddings(texts, st_model, embedding_config)
+                emb = sentence_transformer_embeddings(
+                    texts,
+                    st_model,
+                    embedding_config,
+                )
                 emb_array = np.array(emb)
 
                 emb_df = pd.DataFrame(emb_array)

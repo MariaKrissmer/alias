@@ -71,3 +71,5 @@ scripts/
 # Data, embeddings and figures from the demo notebook
 notebooks/data/
 notebooks/embeddings/
+
+.matplotlib/

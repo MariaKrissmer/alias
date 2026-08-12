@@ -1,9 +1,14 @@
-from dataclasses import dataclass, asdict
 from typing import Dict, Optional
 from datasets import Dataset
-import scanpy as sc
 
-from .scrna import DatascRNAConfig, gen_scrna_dataset
+from .scrna import (
+    DatascRNAConfig,
+    gen_scrna_dataset,
+    gen_scrna_dataset_from_indices,
+    make_scrna_split_indices,
+    _prepare_adata_for_scrna,
+    save_scrna_dataset_artifacts,
+)
 from .ncbi import DataNCBIConfig, gen_ncbi_dataset
 from .triplet_generation import TripletGenerationConfig, generate_triplets
 
@@ -13,6 +18,7 @@ def build_datasets(
     datasets, 
     scrna_config: Optional[DatascRNAConfig] = None,
     ncbi_config: Optional[DataNCBIConfig] = None, 
+    scrna_split_indices = None,
     **kwargs
 ) -> Dict[str, Dict[str, Dataset]]:
     """
@@ -35,11 +41,55 @@ def build_datasets(
 
     # scRNA dataset
     if 'scrna' in datasets:
-        scrna_train, scrna_test, adata_test = gen_scrna_dataset(adata, scrna_config, **kwargs)
+        prepared_scrna_adata = None
+        report_obs = adata.obs
+        resolved_split_indices = scrna_split_indices
+        if resolved_split_indices is None:
+            if scrna_config.split_strategy is not None:
+                prepared_scrna_adata = _prepare_adata_for_scrna(adata, scrna_config, **kwargs)
+                report_obs = prepared_scrna_adata.obs
+                resolved_split_indices = make_scrna_split_indices(
+                    prepared_scrna_adata,
+                    scrna_config,
+                    **kwargs,
+                )
+            else:
+                resolved_split_indices = make_scrna_split_indices(adata, scrna_config, **kwargs)
+
+        if scrna_split_indices is None:
+            if resolved_split_indices is None:
+                scrna_train, scrna_test, adata_test = gen_scrna_dataset(adata, scrna_config, **kwargs)
+            else:
+                scrna_train, scrna_test, adata_test = gen_scrna_dataset_from_indices(
+                    adata,
+                    resolved_split_indices,
+                    scrna_config,
+                    prepared_adata=prepared_scrna_adata,
+                    **kwargs,
+                )
+        else:
+            scrna_train, scrna_test, adata_test = gen_scrna_dataset_from_indices(
+                adata,
+                resolved_split_indices,
+                scrna_config,
+                **kwargs,
+            )
         dataset_dict["scrna"] = {
             "data": scrna_train,
             "test": scrna_test
         }
+
+        if scrna_config.save_artifacts:
+            if resolved_split_indices is None:
+                raise ValueError("save_artifacts=True requires an explicit scRNA split.")
+            save_scrna_dataset_artifacts(
+                train_ds=scrna_train,
+                test_ds=scrna_test,
+                adata_test=adata_test,
+                split_indices=resolved_split_indices,
+                adata_obs=report_obs,
+                scrna_config=scrna_config,
+            )
 
 
     # NCBI dataset 
