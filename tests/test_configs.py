@@ -76,6 +76,32 @@ class TestDataNCBIConfig:
         assert hasattr(config, '__dataclass_fields__')
         assert hasattr(config, 'email')
 
+    def test_reusable_generation_attributes(self):
+        """Test reusable NCBI generation and variant attributes."""
+        config = DataNCBIConfig(
+            email="test@example.com",
+            dataset_id="N3_ncbi_literature_shuffled_labels",
+            raw_articles_path="raw.csv",
+            save_artifacts=True,
+            heldout_values=["Treg"],
+            shuffle_labels=True,
+            label_shuffle_seed=7,
+        )
+
+        assert config.dataset_id == "N3_ncbi_literature_shuffled_labels"
+        assert config.raw_articles_path == "raw.csv"
+        assert config.save_artifacts is True
+        assert config.fetch_if_missing is True
+        assert config.random_state == 42
+        assert config.query_mode == "broad_mesh"
+        assert config.query_field == "Title/Abstract"
+        assert config.query_include_plural is True
+        assert config.heldout_values == ["Treg"]
+        assert config.heldout_key == "cell_types"
+        assert config.shuffle_labels is True
+        assert config.label_shuffle_seed == 7
+        assert config.label_shuffle_original_column == "original_label"
+
 
 class TestTripletGenerationConfig:
     """Test TripletGenerationConfig dataclass."""
@@ -152,7 +178,9 @@ class TestTrainingSTConfig:
         assert config.batch_size == 64
         assert config.epochs == 5
         assert config.warmup_steps == 1000
+        assert config.learning_rate == 5e-5
         assert config.weight_decay == 0.01
+        assert config.max_grad_norm == 1.0
         assert config.seed == 73
         assert config.fp16 is False
 
@@ -211,4 +239,3 @@ class TestTrainingSTConfig:
         )
         
         assert config.testrun is True
-

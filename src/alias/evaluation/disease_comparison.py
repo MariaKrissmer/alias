@@ -11,8 +11,17 @@ import seaborn as sns
 from alias.evaluation.celltype_label_plots import EvaluationConfig, compute_umap
 from alias.evaluation.embedding import load_dataset_embedding_artifacts, load_embedding_model
 from alias.util.artifacts import create_evaluation_run_directory, write_metadata
+from alias.util.plots.color_definition import COLOR_GROUPS
 from alias.util.plots.umap_plots import UMAPCellPlotter
 from alias.util.similarity import evaluate_similarity_meta
+
+
+TAB20B_RED = plt.get_cmap("tab20b").colors[12]
+TAB20C_DARK_RED = TAB20B_RED
+TAB20C_LIGHT_RED = COLOR_GROUPS["slate"][-1]
+TAB20C_LIGHT_ORANGE = COLOR_GROUPS["orange"][-1]
+TAB20C_DARK_ORANGE = COLOR_GROUPS["orange"][0]
+DEG_COMPARISON_COLORS = [TAB20C_DARK_ORANGE, TAB20C_LIGHT_ORANGE]
 
 
 @dataclass
@@ -264,7 +273,7 @@ def _run_deg_analysis(adata, celltype_dir: Path, disease_column: str) -> None:
         suffixes=("_assoc", "_meta"),
     )
 
-    palette = sns.color_palette("tab20")[2:4]
+    palette = DEG_COMPARISON_COLORS
 
     df_long_logfc = pd.melt(
         df_compare[["names", "logfoldchanges_assoc", "logfoldchanges_meta"]],
@@ -284,6 +293,7 @@ def _run_deg_analysis(adata, celltype_dir: Path, disease_column: str) -> None:
     ax.legend(title="Method", bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0, frameon=False)
     plt.tight_layout()
     plt.savefig(celltype_dir / "logFC_barplot.pdf", bbox_inches="tight")
+    plt.savefig(celltype_dir / "logFC_barplot.svg", bbox_inches="tight")
     plt.close()
 
     df_long_pval = pd.melt(
@@ -312,6 +322,7 @@ def _run_deg_analysis(adata, celltype_dir: Path, disease_column: str) -> None:
     ax.legend(title="Method", bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0, frameon=False)
     plt.tight_layout()
     plt.savefig(celltype_dir / "pvalue_barplot.pdf", bbox_inches="tight")
+    plt.savefig(celltype_dir / "pvalue_barplot.svg", bbox_inches="tight")
     plt.close()
 
 
@@ -462,8 +473,22 @@ def disease_comparison(
                     label_column="cell_type",
                     pval_column="mw_p",
                     count_column="cell_count",
-                    size_scale=0.5,
+                    size_scale=7.0,
+                    nonsignificant_color=TAB20C_DARK_RED,
+                    significant_color=TAB20C_LIGHT_RED,
                     output_path=disease_dir / "distribution_difference_summary.pdf",
+                )
+                plotter.plot_distribution_difference(
+                    df=df_results,
+                    x_column="mean_diff",
+                    y_column="-log10p",
+                    label_column="cell_type",
+                    pval_column="mw_p",
+                    count_column="cell_count",
+                    size_scale=7.0,
+                    nonsignificant_color=TAB20C_DARK_RED,
+                    significant_color=TAB20C_LIGHT_RED,
+                    output_path=disease_dir / "distribution_difference_summary.svg",
                 )
                 all_results.append(df_results)
 

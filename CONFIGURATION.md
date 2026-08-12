@@ -1,5 +1,31 @@
 # Configuration Guide
 
+## Manuscript reproducibility settings
+
+The reproducibility scripts are designed to run from a clean checkout with
+project-local input and output directories. Raw source data, generated datasets,
+model checkpoints, logs, credentials, and evaluation outputs are not tracked.
+
+Use `uv sync --extra annotation --extra evaluation` before running the selected
+HIAI ablation workflows.
+
+Set these environment variables when needed:
+
+```bash
+NCBI_EMAIL="your.email@example.org"
+HF_TOKEN_DOWNLOAD="hf_xxxxxxxxxxxxx"
+HF_TOKEN_UPLOAD="hf_xxxxxxxxxxxxx"
+```
+
+`NCBI_EMAIL` is required for the NCBI/PubMed literature retrieval workflow.
+Hugging Face tokens are required only when downloading private/pending assets or
+uploading generated datasets and model artifacts.
+
+The public scripts default to project-local paths under `out/` and `models/`.
+Those directories are ignored by Git. The tracked provenance files live under
+`reproducibility/` and contain sanitized paths such as `${PROJECT_ROOT}`,
+`${DATA_ROOT}`, and `${MODEL_ROOT}`.
+
 ## Hugging Face Token Setup
 
 This project uses environment variables for managing API keys and tokens, following industry best practices.
@@ -79,4 +105,3 @@ upload_token = hf_config.HF_TOKEN_UPLOAD
 - Put `.env` in the directory where you run your Python scripts
 - Not in the installed package location!
 - Example: If you run `python my_script.py` from `/my/project`, put `.env` in `/my/project/`
-

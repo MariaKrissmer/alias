@@ -1,0 +1,56 @@
+datasets:
+  NCBI_raw_collection:
+    pmid_manifest: reproducibility/manifests/ncbi_raw_pmid_manifest.csv
+    n1_query_summary: reproducibility/metadata/datasets/HIAI_Tcells/NCBI_raw_collection/records/N1_ncbi_query_pmid_summary.csv
+    n3_query_summary: reproducibility/metadata/datasets/HIAI_Tcells/NCBI_raw_collection/records/N3_ncbi_query_pmid_summary.csv
+    source: Raw NCBI/PubMed retrieval record for HIAI T-cell literature datasets
+    split_strategy: raw query-level PMID collection before dataset-specific filtering
+    random_seed: null
+  CL_raw_collection:
+    cl_terms: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/hiai_tcells_cl_terms.csv
+    n1_cl_summary: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/records/N1_cl_sctype_term_summary.csv
+    n3_cl_summary: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/records/N3_cl_sctype_term_summary.csv
+    source: Raw Cell Ontology and scType term records used for CL infusion
+    split_strategy: raw terminology collection before dataset-specific CL infusion
+    random_seed: null
+  N1_ncbi_literature:
+    generation_script: scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_N1_N3_ncbi_literature.py
+    metadata: reproducibility/metadata/datasets/HIAI_Tcells/N1_ncbi_literature/generation_metadata.json
+    source: HIAI human immune health atlas plus NCBI literature
+    split_strategy: literature-only training dataset
+    random_seed: 42
+    query_manifest: reproducibility/manifests/query_manifest.csv
+    pmid_manifest: reproducibility/manifests/pmid_manifest.csv
+    raw_pmid_manifest: reproducibility/manifests/ncbi_raw_pmid_manifest.csv
+    raw_cl_terms: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/hiai_tcells_cl_terms.csv
+  N3_ncbi_literature_shuffled_labels:
+    generation_script: scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_N1_N3_ncbi_literature.py
+    metadata: reproducibility/metadata/datasets/HIAI_Tcells/N3_ncbi_literature_shuffled_labels/generation_metadata.json
+    source: N1 literature collection with shuffled training labels
+    split_strategy: literature-only training dataset with label shuffling
+    random_seed: 42
+    query_manifest: reproducibility/manifests/query_manifest.csv
+    pmid_manifest: reproducibility/manifests/pmid_manifest.csv
+    raw_pmid_manifest: reproducibility/manifests/ncbi_raw_pmid_manifest.csv
+    raw_cl_terms: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/hiai_tcells_cl_terms.csv
+  S2_heldout_donor_semantic_200k:
+    generation_script: scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_S2_heldout_donor_semantic_200k.py
+    metadata: reproducibility/metadata/datasets/HIAI_Tcells/S2_heldout_donor_semantic_200k/generation_metadata.json
+    split_metadata: reproducibility/metadata/datasets/HIAI_Tcells/S2_heldout_donor_semantic_200k/split_indices.json
+    source: HIAI human immune health atlas
+    split_strategy: heldout donor with cell-type-stratified subsampling
+    random_seed: 42
+  S3_heldout_donor_nonsemantic_200k:
+    generation_script: scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_S3_heldout_donor_nonsemantic_200k.py
+    metadata: reproducibility/metadata/datasets/HIAI_Tcells/S3_heldout_donor_nonsemantic_200k/generation_metadata.json
+    split_metadata: reproducibility/metadata/datasets/HIAI_Tcells/S3_heldout_donor_nonsemantic_200k/split_indices.json
+    source: HIAI human immune health atlas
+    split_strategy: heldout donor with non-semantic cell sentences
+    random_seed: 42
+  S5_heldout_donor_semantic_shuffled_labels_200k:
+    generation_script: scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_S5_heldout_donor_semantic_shuffled_labels_200k.py
+    metadata: reproducibility/metadata/datasets/HIAI_Tcells/S5_heldout_donor_semantic_shuffled_labels_200k/generation_metadata.json
+    split_metadata: reproducibility/metadata/datasets/HIAI_Tcells/S5_heldout_donor_semantic_shuffled_labels_200k/split_indices.json
+    source: HIAI human immune health atlas
+    split_strategy: heldout donor with semantic cell sentences and shuffled training labels
+    random_seed: 42

@@ -1,0 +1,50 @@
+models:
+  - label: MA
+    canonical_id: MB
+    model_id: MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15
+    dataset_ids: [S2_heldout_donor_semantic_200k, N1_ncbi_literature]
+    description: HIAI donor-generalization ablation
+    training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MB_S2_N1_200k_lr5e5.py
+    huggingface: publication-pending
+  - label: MA*
+    canonical_id: MJ
+    model_id: MJ_HIAI_Tcells_S2_N3_200k_lr5e5
+    dataset_ids: [S2_heldout_donor_semantic_200k, N3_ncbi_literature_shuffled_labels]
+    description: HIAI shuffled-literature control
+    training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MJ_S2_N3_200k_lr5e5.py
+    huggingface: publication-pending
+  - label: MB
+    canonical_id: MG
+    model_id: MG_HIAI_Tcells_S2_200k_lr5e5
+    dataset_ids: [S2_heldout_donor_semantic_200k]
+    description: HIAI metadata contribution
+    training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MG_S2_200k_lr5e5.py
+    huggingface: publication-pending
+  - label: MC
+    canonical_id: MF
+    model_id: MF_HIAI_Tcells_S3_200k_lr5e5
+    dataset_ids: [S3_heldout_donor_nonsemantic_200k]
+    description: HIAI non-semantic ablation
+    training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MF_S3_200k_lr5e5.py
+    huggingface: publication-pending
+  - label: MC*
+    canonical_id: MH
+    model_id: MH_HIAI_Tcells_S5_200k_lr5e5
+    dataset_ids: [S5_heldout_donor_semantic_shuffled_labels_200k]
+    description: HIAI shuffled-label control
+    training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MH_S5_200k_lr5e5.py
+    huggingface: publication-pending
+  - label: MD
+    canonical_id: MI
+    model_id: MI_HIAI_Tcells_N1_200k_lr5e5
+    dataset_ids: [N1_ncbi_literature]
+    description: HIAI literature-only model
+    training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MI_N1_200k_lr5e5.py
+    huggingface: publication-pending
+  - label: Base
+    canonical_id: Base
+    model_id: neuml/pubmedbert-base-embeddings
+    dataset_ids: []
+    description: PubMedBERT baseline
+    training_script: null
+    huggingface: https://huggingface.co/neuml/pubmedbert-base-embeddings

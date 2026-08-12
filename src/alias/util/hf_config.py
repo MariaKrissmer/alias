@@ -9,24 +9,29 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
 
+def load_hf_env() -> None:
+    """Load Hugging Face tokens from the nearest .env file or ~/.env."""
+    env_path = find_dotenv(usecwd=True)  # Searches from cwd upwards
+
+    if env_path:
+        load_dotenv(env_path)
+        return
+
+    home_env = Path.home() / ".env"
+    if home_env.exists():
+        load_dotenv(home_env)
+        return
+
+    print("Warning: .env file not found.")
+    print("Searched in: current directory (and parents), and ~/.env")
+    print("Please create a .env file with your Hugging Face tokens (see .env.example)")
+
+
 # Try to find .env file in the following order:
 # 1. Current working directory (where user runs their script)
 # 2. Search up directory tree from cwd (for nested project structures)
 # 3. User home directory (~/.env as fallback)
-
-env_path = find_dotenv(usecwd=True)  # Searches from cwd upwards
-
-if env_path:
-    load_dotenv(env_path)
-else:
-    # Try home directory as fallback
-    home_env = Path.home() / ".env"
-    if home_env.exists():
-        load_dotenv(home_env)
-    else:
-        print("Warning: .env file not found.")
-        print("Searched in: current directory (and parents), and ~/.env")
-        print("Please create a .env file with your Hugging Face tokens (see .env.example)")
+load_hf_env()
 
 
 class HFConfig:
@@ -57,4 +62,3 @@ class HFConfig:
 
 # Create a singleton instance
 hf_config = HFConfig()
-

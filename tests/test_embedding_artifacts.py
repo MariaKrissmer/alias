@@ -16,11 +16,25 @@ GenEmbeddingsConfig = embedding_module.GenEmbeddingsConfig
 generate_embeddings = embedding_module.generate_embeddings
 load_saved_embeddings = embedding_module.load_saved_embeddings
 load_dataset_embedding_artifacts = embedding_module.load_dataset_embedding_artifacts
+generate_celltype_label_embedding_variant = embedding_module.generate_celltype_label_embedding_variant
 
 
 class DummySentenceTransformer:
     def encode(self, texts, batch_size=64, show_progress_bar=True):
         return [[float(len(text)), float(index)] for index, text in enumerate(texts)]
+
+    def get_sentence_embedding_dimension(self):
+        return 2
+
+
+class RecordingSentenceTransformer:
+    def __init__(self):
+        self.calls = []
+
+    def encode(self, texts, batch_size=64, show_progress_bar=True):
+        text_list = list(texts)
+        self.calls.append({"texts": text_list, "batch_size": batch_size})
+        return [[float(len(text)), float(index)] for index, text in enumerate(text_list)]
 
     def get_sentence_embedding_dimension(self):
         return 2
@@ -292,6 +306,46 @@ def test_generate_embeddings_reuses_matching_config_run(tmp_path: Path, monkeypa
     assert second_path == first_path
 
 
+def test_generate_embeddings_uses_configured_output_model_name_for_checkpoint_paths(
+    tmp_path: Path,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        embedding_module,
+        "load_embedding_model",
+        lambda _: DummySentenceTransformer(),
+    )
+
+    checkpoint_path = "/models/MO_LaManno_S9_N5_lr5e5_all/epoch_11_ncbi"
+    evaluation_dict = {
+        "scrna": {
+            "test": [
+                {"index": "cell_alpha", "sentence1": "GENE1 GENE2", "celltype": "Forebrain", "label": "Forebrain"},
+            ]
+        }
+    }
+    config = GenEmbeddingsConfig(
+        annotation_column="celltype",
+        embedding_models=[checkpoint_path],
+        model_type="sentence_transformer",
+        output_dir=str(tmp_path / "_out"),
+        max_cells=10,
+        model_output_names={checkpoint_path: "MO_LaManno_S9_N5_lr5e5_epoch_11_ncbi"},
+    )
+
+    embeddings = generate_embeddings(
+        evaluation_dict,
+        config,
+        timestamp="2026-04-01T10-00-00",
+    )
+
+    assert list(embeddings) == ["MO_LaManno_S9_N5_lr5e5_epoch_11_ncbi"]
+    cell_path = Path(
+        embeddings["MO_LaManno_S9_N5_lr5e5_epoch_11_ncbi"]["scrna"]["df_cells"]["path"]
+    )
+    assert cell_path.parent.parent.name == "MO_LaManno_S9_N5_lr5e5_epoch_11_ncbi"
+
+
 def test_generate_embeddings_creates_new_run_when_config_differs(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(
         embedding_module,
@@ -326,6 +380,51 @@ def test_generate_embeddings_creates_new_run_when_config_differs(tmp_path: Path,
     )
 
     assert second["modelname"]["scrna"]["df_cells"]["path"] != first["modelname"]["scrna"]["df_cells"]["path"]
+
+
+def test_generate_embeddings_uses_configured_batch_size_for_additional_data(tmp_path: Path, monkeypatch):
+    model = RecordingSentenceTransformer()
+    monkeypatch.setattr(
+        embedding_module,
+        "load_embedding_model",
+        lambda _: model,
+    )
+
+    evaluation_dict = {
+        "scrna": {
+            "test": [
+                {"index": "cell_alpha", "sentence1": "GENE1 GENE2", "celltype": "T_cell", "label": "T_cell"},
+                {"index": "cell_beta", "sentence1": "GENE3 GENE4", "celltype": "B_cell", "label": "B_cell"},
+            ]
+        }
+    }
+    config = GenEmbeddingsConfig(
+        annotation_column="celltype",
+        embedding_models=["org/model-name"],
+        model_type="sentence_transformer",
+        output_dir=str(tmp_path / "_out"),
+        batch_size=7,
+        max_cells=10,
+        additional_data=["cytotoxic", "regulatory"],
+    )
+
+    generate_embeddings(
+        evaluation_dict,
+        config,
+        timestamp="2026-04-01T12-00-00",
+    )
+
+    additional_call = next(
+        call for call in model.calls if call["texts"] == ["cytotoxic", "regulatory"]
+    )
+    non_additional_batch_sizes = [
+        call["batch_size"]
+        for call in model.calls
+        if call["texts"] != ["cytotoxic", "regulatory"]
+    ]
+
+    assert additional_call["batch_size"] == 7
+    assert set(non_additional_batch_sizes) == {7}
 
 
 def test_generate_embeddings_force_regenerate_bypasses_reuse(tmp_path: Path, monkeypatch):
@@ -363,3 +462,54 @@ def test_generate_embeddings_force_regenerate_bypasses_reuse(tmp_path: Path, mon
     )
 
     assert second["modelname"]["scrna"]["df_cells"]["path"] != first["modelname"]["scrna"]["df_cells"]["path"]
+
+
+def test_generate_celltype_label_embedding_variant_reuses_cells_and_batches_labels(
+    tmp_path: Path,
+    monkeypatch,
+):
+    model = RecordingSentenceTransformer()
+    monkeypatch.setattr(
+        embedding_module,
+        "load_embedding_model",
+        lambda _: model,
+    )
+
+    evaluation_dict = {
+        "scrna": {
+            "test": [
+                {"index": "cell_alpha", "sentence1": "GENE1 GENE2", "celltype": "T_cell", "label": "T_cell"},
+                {"index": "cell_beta", "sentence1": "GENE3 GENE4", "celltype": "B_cell", "label": "B_cell"},
+            ]
+        }
+    }
+    config = GenEmbeddingsConfig(
+        annotation_column="celltype",
+        embedding_models=["org/model-name"],
+        model_type="sentence_transformer",
+        output_dir=str(tmp_path / "_out"),
+        batch_size=7,
+        max_cells=10,
+    )
+    original = generate_embeddings(
+        evaluation_dict,
+        config,
+        timestamp="2026-04-01T10-00-00",
+    )["modelname"]["scrna"]
+    model.calls.clear()
+
+    variant = generate_celltype_label_embedding_variant(
+        dataset_meta=original,
+        model_name="org/model-name",
+        embedding_config=config,
+        dataset_name="scrna",
+        label_batch_size=3,
+        timestamp="2026-04-01T11-00-00",
+    )
+
+    assert variant["df_cells"] == original["df_cells"]
+    assert variant["df_genes"] == original["df_genes"]
+    assert variant["df_labels"] == original["df_labels"]
+    assert variant["df_celltypes"]["path"] != original["df_celltypes"]["path"]
+    assert variant["df_celltypes"]["label_batch_size"] == 3
+    assert model.calls == [{"texts": ["T_cell", "B_cell"], "batch_size": 3}]

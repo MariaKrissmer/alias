@@ -25,7 +25,7 @@ def load_functionality_module(monkeypatch):
         def __init__(self, *args, **kwargs):
             pass
 
-        def plot_similarity_heatmap(self, sim_df, output_path):
+        def plot_similarity_heatmap(self, sim_df, output_path, **kwargs):
             output_path = Path(output_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text("heatmap", encoding="utf-8")

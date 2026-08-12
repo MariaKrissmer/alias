@@ -1,0 +1,24 @@
+dataset_group,source_record,AIFI_L2,label,canonical_label,cell_ontology_id,cell_ontology_label,data_source,knowledge_source,type,n_collected_rows,n_collected_unique_texts,n_collected_positive_markers,N3_included_raw_rows,N3_included_unique_texts,N3_included_positive_markers,N3_included_training_rows_after_cl_infusion
+N3,hiai_tcells_cl_terms.csv,CD8aa,CD8aa,CD8aa,CL:0000802,"CD8-alpha alpha positive, gamma-delta intraepithelial T cell",CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,CD8aa,CD8aa,CD8aa,CL:0000802,"CD8-alpha alpha positive, gamma-delta intraepithelial T cell",CL description,cell_ontology_description,cl_description_sentence,16,16,0,16,16,0,32
+N3,hiai_tcells_cl_terms.csv,CD8aa,CD8aa,CD8aa,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,3,1,1,3,2
+N3,hiai_tcells_cl_terms.csv,DN T cell,DN T cell,DN T cell,CL:0002489,double negative thymocyte,CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,DN T cell,DN T cell,DN T cell,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,3,1,1,3,2
+N3,hiai_tcells_cl_terms.csv,MAIT,MAIT,MAIT,CL:0000940,mucosal-associated invariant T cell,CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,MAIT,MAIT,MAIT,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,5,1,1,5,2
+N3,hiai_tcells_cl_terms.csv,Memory CD4 T cell,Memory CD4 T cell,Memory CD4 T cell,CL:0000897,"CD4-positive, alpha-beta memory T cell",CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,Memory CD4 T cell,Memory CD4 T cell,Memory CD4 T cell,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,5,1,1,5,2
+N3,hiai_tcells_cl_terms.csv,Memory CD8 T cell,Memory CD8 T cell,Memory CD8 T cell,CL:0000909,"CD8-positive, alpha-beta memory T cell",CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,Memory CD8 T cell,Memory CD8 T cell,Memory CD8 T cell,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,5,1,1,5,2
+N3,hiai_tcells_cl_terms.csv,Naive CD4 T cell,Naive CD4 T cell,Naive CD4 T cell,CL:0000895,"naive thymus-derived CD4-positive, alpha-beta T cell",CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,Naive CD4 T cell,Naive CD4 T cell,Naive CD4 T cell,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,6,1,1,6,2
+N3,hiai_tcells_cl_terms.csv,Naive CD8 T cell,Naive CD8 T cell,Naive CD8 T cell,CL:0000900,"naive thymus-derived CD8-positive, alpha-beta T cell",CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,Naive CD8 T cell,Naive CD8 T cell,Naive CD8 T cell,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,6,1,1,6,2
+N3,hiai_tcells_cl_terms.csv,Proliferating T cell,Proliferating T cell,Proliferating T cell,CL:4033069,cycling T cell,CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,Proliferating T cell,Proliferating T cell,Proliferating T cell,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,4,1,1,4,2
+N3,hiai_tcells_cl_terms.csv,Treg,Treg,Treg,CL:0000792,"CD4-positive, CD25-positive, alpha-beta regulatory T cell",CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,Treg,Treg,Treg,CL:0000792,"CD4-positive, CD25-positive, alpha-beta regulatory T cell",CL description,cell_ontology_description,cl_description_sentence,13,13,0,13,13,0,26
+N3,hiai_tcells_cl_terms.csv,Treg,Treg,Treg,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,5,1,1,5,2
+N3,hiai_tcells_cl_terms.csv,gamma delta T,gamma delta T,gamma delta T,CL:0000798,gamma-delta T cell,CL definition,cell_ontology_definition,cl_definition,1,1,0,1,1,0,2
+N3,hiai_tcells_cl_terms.csv,gamma delta T,gamma delta T,gamma delta T,CL:0000798,gamma-delta T cell,CL description,cell_ontology_description,cl_description_sentence,13,13,0,13,13,0,26
+N3,hiai_tcells_cl_terms.csv,gamma delta T,gamma delta T,gamma delta T,,,scType markers,sctype_positive_marker_genes,sctype_positive_marker_genes,1,1,5,1,1,5,2

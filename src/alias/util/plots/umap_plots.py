@@ -9,7 +9,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from adjustText import adjust_text
 import matplotlib.colors as mcolors
-from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 
 from alias.util.plots.pub_style import set_pub_style
 from alias.util.plots.color_definition import CATEGORICAL_PALETTES, COLORMAPS
@@ -20,7 +20,7 @@ class UMAPCellPlotter:
         palette_name="tab20_new", 
         colormap_name="Red_r",
         simmap_name="Heatmap: Teal–White–Red",
-        timemap_name="Timemap: Slate–Orange",
+        timemap_name="magma",
         histmap_name='tabc1',
         genexpmap_name='Teal_r2',
         point_size=10,
@@ -145,9 +145,30 @@ class UMAPCellPlotter:
         side_by_side_dfs=None,
         side_by_side_titles=None,
         side_by_side_centroids=None,
-        debug_color_check=False
+        debug_color_check=False,
+        highlight_column=None,
+        highlight_values=None,
+        background_alpha=None,
+        highlighted_alpha=None,
     ):
         import matplotlib.gridspec as gridspec
+
+        def _highlight_mask(local_df):
+            if highlight_column is None:
+                return None
+            if highlight_column not in local_df.columns:
+                raise ValueError(f"Highlight column `{highlight_column}` not found in UMAP dataframe.")
+            if highlight_values is None:
+                return local_df[highlight_column].astype(bool)
+            allowed = set(highlight_values)
+            return local_df[highlight_column].isin(allowed)
+
+        def _scatter_alpha(mask, highlighted):
+            if mask is None:
+                return 0.7
+            if highlighted:
+                return 0.7 if highlighted_alpha is None else highlighted_alpha
+            return 0.08 if background_alpha is None else background_alpha
 
         if side_by_side_dfs is not None:
             n_plots = len(side_by_side_dfs)
@@ -237,22 +258,54 @@ class UMAPCellPlotter:
                 
                 color_col = continuous_color_column or time_color_column
                 cmap = self.simmap if continuous_color_column else self.timemap
-                color_vmin = vmin if vmin is not None else (-1 if continuous_color_column else 0)
-                color_vmax = vmax if vmax is not None else 1
+                if continuous_color_column:
+                    color_vmin = vmin if vmin is not None else -1
+                    color_vmax = vmax if vmax is not None else 1
+                else:
+                    numeric_color = pd.to_numeric(df[color_col], errors="coerce")
+                    finite_color = numeric_color[np.isfinite(numeric_color)]
+                    color_vmin = vmin if vmin is not None else (
+                        float(finite_color.min()) if not finite_color.empty else 0
+                    )
+                    color_vmax = vmax if vmax is not None else (
+                        float(finite_color.max()) if not finite_color.empty else 1
+                    )
 
                 # Create side colorbar axis
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="3%", pad=0.1)
 
-                scatter = ax.scatter(
-                    df["UMAP1"], df["UMAP2"],
-                    c=df[color_col],
-                    cmap=cmap,
-                    vmin=color_vmin, vmax=color_vmax,
-                    s=self.point_size / 2,
-                    alpha=0.7,
-                    linewidth=0
-                )
+                mask = _highlight_mask(df)
+                if mask is None:
+                    scatter = ax.scatter(
+                        df["UMAP1"], df["UMAP2"],
+                        c=df[color_col],
+                        cmap=cmap,
+                        vmin=color_vmin, vmax=color_vmax,
+                        s=self.point_size / 2,
+                        alpha=0.7,
+                        linewidth=0
+                    )
+                else:
+                    numeric_values = pd.to_numeric(df[color_col], errors="coerce")
+                    for highlighted in (False, True):
+                        subset = df.loc[mask == highlighted]
+                        if subset.empty:
+                            continue
+                        ax.scatter(
+                            subset["UMAP1"], subset["UMAP2"],
+                            c=numeric_values.loc[subset.index],
+                            cmap=cmap,
+                            vmin=color_vmin, vmax=color_vmax,
+                            s=self.point_size / 2,
+                            alpha=_scatter_alpha(mask, highlighted),
+                            linewidth=0
+                        )
+                    scatter = mpl.cm.ScalarMappable(
+                        norm=mcolors.Normalize(vmin=color_vmin, vmax=color_vmax),
+                        cmap=cmap,
+                    )
+                    scatter.set_array([])
                 
                 for coll in ax.collections:
                     coll.set_rasterized(True)
@@ -276,16 +329,39 @@ class UMAPCellPlotter:
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="3%", pad=0.1)
 
-                scatter = ax.scatter(
-                    df["UMAP1"], df["UMAP2"],
-                    c=df[color_col],
-                    cmap=cmap,
-                    vmin=color_vmin,
-                    vmax=color_vmax,
-                    s=self.point_size / 2,
-                    alpha=0.7,
-                    linewidth=0
-                )
+                mask = _highlight_mask(df)
+                if mask is None:
+                    scatter = ax.scatter(
+                        df["UMAP1"], df["UMAP2"],
+                        c=df[color_col],
+                        cmap=cmap,
+                        vmin=color_vmin,
+                        vmax=color_vmax,
+                        s=self.point_size / 2,
+                        alpha=0.7,
+                        linewidth=0
+                    )
+                else:
+                    numeric_values = pd.to_numeric(df[color_col], errors="coerce")
+                    for highlighted in (False, True):
+                        subset = df.loc[mask == highlighted]
+                        if subset.empty:
+                            continue
+                        ax.scatter(
+                            subset["UMAP1"], subset["UMAP2"],
+                            c=numeric_values.loc[subset.index],
+                            cmap=cmap,
+                            vmin=color_vmin,
+                            vmax=color_vmax,
+                            s=self.point_size / 2,
+                            alpha=_scatter_alpha(mask, highlighted),
+                            linewidth=0
+                        )
+                    scatter = mpl.cm.ScalarMappable(
+                        norm=mcolors.Normalize(vmin=color_vmin, vmax=color_vmax),
+                        cmap=cmap,
+                    )
+                    scatter.set_array([])
                 
                 for coll in ax.collections:
                     coll.set_rasterized(True)
@@ -306,17 +382,36 @@ class UMAPCellPlotter:
                 palette_dict = {label: self.palette[i % len(self.palette)] for i, label in enumerate(labels)}
                 df[annotation_column] = pd.Categorical(df[annotation_column], categories=labels, ordered=True)
 
-                scatter = sns.scatterplot(
-                    data=df[df[annotation_column].notna()],
-                    x="UMAP1", y="UMAP2",
-                    hue=annotation_column,
-                    palette=palette_dict,
-                    s=self.point_size / 2,
-                    alpha=0.7,
-                    linewidth=0,
-                    ax=ax,
-                    legend='full'  # allow handles to be created
-                )
+                plot_df = df[df[annotation_column].notna()]
+                mask = _highlight_mask(plot_df)
+                if mask is None:
+                    scatter = sns.scatterplot(
+                        data=plot_df,
+                        x="UMAP1", y="UMAP2",
+                        hue=annotation_column,
+                        palette=palette_dict,
+                        s=self.point_size / 2,
+                        alpha=0.7,
+                        linewidth=0,
+                        ax=ax,
+                        legend='full'  # allow handles to be created
+                    )
+                else:
+                    for highlighted in (False, True):
+                        subset = plot_df.loc[mask == highlighted]
+                        if subset.empty:
+                            continue
+                        sns.scatterplot(
+                            data=subset,
+                            x="UMAP1", y="UMAP2",
+                            hue=annotation_column,
+                            palette=palette_dict,
+                            s=self.point_size / 2,
+                            alpha=_scatter_alpha(mask, highlighted),
+                            linewidth=0,
+                            ax=ax,
+                            legend=False
+                        )
                 
                 for coll in ax.collections:
                     coll.set_rasterized(True)
@@ -326,7 +421,24 @@ class UMAPCellPlotter:
                     ax.get_legend().remove()
 
                 # Fetch handles and labels from the Axes
-                handles, legend_labels = ax.get_legend_handles_labels()
+                if mask is None:
+                    handles, legend_labels = ax.get_legend_handles_labels()
+                else:
+                    handles = [
+                        Line2D(
+                            [0],
+                            [0],
+                            marker="o",
+                            color="none",
+                            markerfacecolor=palette_dict[label],
+                            markeredgecolor="none",
+                            markersize=max(4, self.point_size / 2),
+                            label=label,
+                            linestyle="",
+                        )
+                        for label in labels
+                    ]
+                    legend_labels = labels
 
                 # Create side axis for legend
                 divider = make_axes_locatable(ax)
@@ -704,7 +816,9 @@ class UMAPCellPlotter:
         ax.spines['left'].set_visible(True)
               
         ax.set_xlim([0.0, 1.0])
-        ax.set_ylim([0.0, 1.05])
+        ax.set_ylim([0.0, 1.0])
+        ax.set_xticks(np.arange(0, 1.01, 0.2))
+        ax.set_yticks(np.arange(0, 1.01, 0.2))
         ax.set_xlabel("False Positive Rate", **self.font_settings)
         ax.set_ylabel("True Positive Rate", **self.font_settings)
         if title:
@@ -729,7 +843,12 @@ class UMAPCellPlotter:
         output_path,
         title="Similarity Heatmap",
         row_labels = None,
-        col_labels = None
+        col_labels = None,
+        x_label: str = "Functionality Descriptions",
+        y_label: str = "Cell Types",
+        vmin: float | None = -1.0,
+        vmax: float | None = 1.0,
+        highlight_cells: dict | None = None,
     ):
         """
         Plots a square-annotated similarity heatmap with fixed width and dynamic height.
@@ -754,8 +873,8 @@ class UMAPCellPlotter:
             fmt=".2f",
             cmap=self.colormap,
             square=True,
-            vmax=1.0,
-            vmin=-1.0,
+            vmax=vmax,
+            vmin=vmin,
             cbar_kws={
                 "label": "Similarity",
                 "shrink": 0.6,
@@ -763,10 +882,36 @@ class UMAPCellPlotter:
             },
             annot_kws={"size": self.font_size}  # Set annotation font size here
         )
+
+        if highlight_cells:
+            from matplotlib.patches import Rectangle
+
+            row_positions = {str(label): idx for idx, label in enumerate(sim_df.index)}
+            col_positions = {str(label): idx for idx, label in enumerate(sim_df.columns)}
+            for column_label, row_label_values in highlight_cells.items():
+                column_idx = col_positions.get(str(column_label))
+                if column_idx is None:
+                    continue
+                if isinstance(row_label_values, str):
+                    row_label_values = [row_label_values]
+                for row_label in row_label_values:
+                    row_idx = row_positions.get(str(row_label))
+                    if row_idx is None:
+                        continue
+                    ax.add_patch(
+                        Rectangle(
+                            (column_idx, row_idx),
+                            1,
+                            1,
+                            fill=False,
+                            edgecolor="black",
+                            linewidth=2.0,
+                        )
+                    )
         
         plt.title(title, **self.title_font_settings)
-        plt.xlabel("Functionality Descriptions", fontsize=self.font_size)
-        plt.ylabel("Cell Types", fontsize=self.font_size)
+        plt.xlabel(x_label, fontsize=self.font_size)
+        plt.ylabel(y_label, fontsize=self.font_size)
         
         if col_labels is not None:
             ax.set_xticklabels(col_labels, rotation=45, ha='right', fontsize=self.font_size)
@@ -1007,7 +1152,9 @@ class UMAPCellPlotter:
         ylabel="-log10(p-value)",
         output_path=None,
         annotate=True,
-        size_scale=0.2   # NEW: scaling factor for points
+        size_scale=0.2,   # NEW: scaling factor for points
+        nonsignificant_color="grey",
+        significant_color="red",
     ):
         """
         Plot a distribution difference (volcano-like) plot, highlighting significant points,
@@ -1028,7 +1175,7 @@ class UMAPCellPlotter:
         ax.scatter(
             df.loc[~sig_mask, x_column],
             df.loc[~sig_mask, y_column],
-            color="grey",
+            color=nonsignificant_color,
             s=sizes[~sig_mask],
             alpha=0.7,
             label=f"ns (p>={significance_threshold})"
@@ -1038,7 +1185,7 @@ class UMAPCellPlotter:
         ax.scatter(
             df.loc[sig_mask, x_column],
             df.loc[sig_mask, y_column],
-            color="red",
+            color=significant_color,
             s=sizes[sig_mask],
             alpha=0.7,
             label=f"sig (p<{significance_threshold})"

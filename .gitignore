@@ -65,9 +65,13 @@ tests/test_hexb_subset_script.py
 # uv
 .uv/
 
-# Scripts
-scripts/
+# Selected reproducibility scripts are tracked; generated/private script artifacts remain ignored.
+scripts/revision1_v1/logs/
+scripts/**/__pycache__/
+*.pyc
 
 # Data, embeddings and figures from the demo notebook
 notebooks/data/
 notebooks/embeddings/
+
+.matplotlib/

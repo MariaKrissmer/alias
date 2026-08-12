@@ -7,6 +7,12 @@ from pathlib import Path
 import os
 
 
+def _load_hf_env() -> None:
+    from alias.util.hf_config import load_hf_env
+
+    load_hf_env()
+
+
 def is_model_private(model_id: str, token: str = None) -> bool:
     """Check if a model is private. Returns False if token is not provided."""
     if not token:
@@ -33,6 +39,7 @@ def load_model(model_id: str):
         return model
 
     # Otherwise assume HuggingFace model
+    _load_hf_env()
     token = os.getenv("HF_TOKEN_DOWNLOAD")
 
     # Optional: you can implement a check if model is private
@@ -67,6 +74,7 @@ def upload_dataset_to_hf(
     """
     api = HfApi()
     if not token:
+        _load_hf_env()
         token = os.getenv("HF_TOKEN_UPLOAD")
     if not token:
         raise ValueError(
@@ -111,6 +119,7 @@ def load_hf_dataset(dataset_name: str, hf_token: str = None, **kwargs):
     
     # Get token from env if not provided
     if not hf_token:
+        _load_hf_env()
         hf_token = os.getenv("HF_TOKEN_DOWNLOAD")
     
     if not hf_token:

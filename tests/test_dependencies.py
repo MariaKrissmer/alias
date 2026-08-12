@@ -251,7 +251,7 @@ class TestEnvironmentConfiguration:
         
         assert hf_config is not None
 
-    def test_hf_config_without_env(self):
+    def test_hf_config_without_env(self, monkeypatch):
         """Test hf_config behavior without .env file."""
         import os
         from alias.util.hf_config import hf_config
@@ -259,6 +259,9 @@ class TestEnvironmentConfiguration:
         # If .env exists, skip this test
         if os.path.exists('.env'):
             pytest.skip(".env file is configured, skipping negative test")
+
+        monkeypatch.delenv("HF_TOKEN_DOWNLOAD", raising=False)
+        monkeypatch.delenv("HF_TOKEN_UPLOAD", raising=False)
         
         # Should raise informative error when accessing tokens
         with pytest.raises(ValueError, match="not found in environment"):
@@ -270,4 +273,3 @@ class TestEnvironmentConfiguration:
         
         # Just test that it's importable
         assert load_dotenv is not None
-
