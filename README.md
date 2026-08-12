@@ -36,6 +36,12 @@ cp .env.example .env
 
 📖 **For detailed configuration instructions, troubleshooting, and usage examples, see [CONFIGURATION.md](CONFIGURATION.md)**
 
+## Manuscript reproducibility
+
+The manuscript reproducibility workflows are maintained on the [`manuscript-reproducibility`](https://github.com/MariaKrissmer/alias/tree/manuscript-reproducibility) branch.
+
+That branch contains the selected preprocessing, cell-sentence generation, literature retrieval, fine-tuning, evaluation scripts, sanitized dataset and model metadata, query/PMID manifests, and deterministic split definitions used for the manuscript HIAI ablation study. Raw data, local checkpoints, credentials, logs, and generated outputs are excluded from version control.
+
 ## Getting Started
 
 ### Demo Notebook
@@ -79,7 +85,6 @@ uv run pytest tests/test_integration_pipeline.py -v
 ```
 
 Tests run automatically on every push via GitHub Actions. See [`tests/README.md`](tests/README.md) for details. 
-
 
 
 
