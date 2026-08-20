@@ -46,7 +46,18 @@ class DummyPlotter:
     def plot_cells(self, df, output_path, title, annotation_column=None, annotate_centroids_df=None, continuous_color_column=None):
         self._touch(output_path)
 
-    def plot_distribution_difference(self, df, x_column, y_column, label_column, pval_column, count_column, size_scale, output_path):
+    def plot_distribution_difference(
+        self,
+        df,
+        x_column,
+        y_column,
+        label_column,
+        pval_column,
+        count_column,
+        size_scale,
+        output_path,
+        **kwargs,
+    ):
         self._touch(output_path)
 
 

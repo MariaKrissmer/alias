@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-import sys
 
 import numpy as np
 import pandas as pd
@@ -14,22 +13,10 @@ from sklearn.decomposition import PCA
 import umap
 
 from alias.evaluation.embedding import load_dataset_embedding_artifacts
+from alias.evaluation.lamanno_lineages import LAMANNO_LINEAGES
 from alias.util.artifacts import create_evaluation_run_directory, write_metadata
 from alias.util.plots.umap_plots import UMAPCellPlotter
 
-
-def _ensure_lamanno_util_path() -> None:
-    current = Path(__file__).resolve()
-    for parent in current.parents:
-        candidate = parent / "scripts" / "revision1_v1" / "LaManno" / "util"
-        if candidate.exists():
-            if str(candidate) not in sys.path:
-                sys.path.insert(0, str(candidate))
-            return
-
-
-_ensure_lamanno_util_path()
-from lineages import LAMANNO_LINEAGES  # noqa: E402
 
 DEFAULT_MARKERS: list[str] = [
     "Pax6",

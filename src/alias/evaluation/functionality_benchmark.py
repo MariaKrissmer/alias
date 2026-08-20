@@ -14,6 +14,12 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from alias.util.plots.color_definition import (
+    PUBLICATION_ABLATION_MODEL_LABELS,
+    PUBLICATION_ABLATION_MODEL_ORDER,
+    PUBLICATION_ABLATION_MODEL_PALETTE,
+)
+
 
 SourceFormat = Literal[
     "functionality_similarity",
@@ -67,16 +73,8 @@ ASSIGNMENT_GROUP_LABELS = {
     "llm_label": "Cell type label-based assignment",
 }
 ALIAS_SOURCE_NAMES = {"ours_cell", "ours_label"}
-ALIAS_MODEL_COLOR_ORDER = ["MB", "MJ", "MG", "MH", "MF", "MI", "Base"]
-ALIAS_MODEL_PUBLICATION_LABELS = {
-    "MB": "MA",
-    "MJ": "MA*",
-    "MG": "MB",
-    "MH": "MB*",
-    "MF": "MC",
-    "MI": "MD",
-    "Base": "Base",
-}
+ALIAS_MODEL_COLOR_ORDER = PUBLICATION_ABLATION_MODEL_ORDER
+ALIAS_MODEL_PUBLICATION_LABELS = PUBLICATION_ABLATION_MODEL_LABELS
 MB_BLUE = "#2171b5"
 PLOT_HEIGHT = 1.75
 BENCHMARK_PLOT_HEIGHT = 2.3
@@ -301,6 +299,10 @@ def compute_ground_truth_ranks(
     if missing_scores:
         raise ValueError(f"Scores are missing required columns: {sorted(missing_scores)}")
 
+    mapping = mapping.copy()
+    if "accepted_cell_type" not in mapping.columns and "cell_type" in mapping.columns:
+        mapping = mapping.rename(columns={"cell_type": "accepted_cell_type"})
+
     if not {"functionality", "accepted_cell_type"}.issubset(mapping.columns):
         raise ValueError("Mapping must contain `functionality` and `accepted_cell_type` columns.")
 
@@ -443,16 +445,9 @@ def _benchmark_model_palette(model_names: list[str]) -> dict[str, str | tuple[fl
 def _ablation_model_palette(model_names: list[str]) -> dict[str, tuple[float, float, float, float]]:
     cmap = plt.get_cmap("Blues")
     reference_order = ALIAS_MODEL_COLOR_ORDER
-    if len(reference_order) == 1:
-        values = [0.82]
-    else:
-        values = [
-            0.92 - index * (0.58 / max(1, len(reference_order) - 1))
-            for index in range(len(reference_order))
-        ]
     full_palette = {
-        model: cmap(value)
-        for model, value in zip(reference_order, values)
+        model: PUBLICATION_ABLATION_MODEL_PALETTE[model]
+        for model in reference_order
     }
     extra_models = [model for model in model_names if model not in full_palette]
     if extra_models:

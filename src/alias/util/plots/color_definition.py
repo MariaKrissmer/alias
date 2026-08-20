@@ -89,6 +89,30 @@ for i in range(1, 5):
 # Export for external use
 CATEGORICAL_PALETTES = tabc
 
+PUBLICATION_ABLATION_MODEL_ORDER = ["MB", "MJ", "MG", "MF", "MH", "MI", "Base"]
+PUBLICATION_ABLATION_MODEL_LABELS = {
+    "MB": "MA",
+    "MJ": "MA*",
+    "MG": "MB",
+    "MF": "MC",
+    "MH": "MC*",
+    "MI": "MD",
+    "Base": "Base",
+}
+PUBLICATION_ABLATION_BLUE_VALUES = {
+    "MB": 0.92,
+    "MJ": 0.8233333333333334,
+    "MG": 0.7266666666666667,
+    "MF": 0.63,
+    "MH": 0.5333333333333334,
+    "MI": 0.43666666666666665,
+    "Base": 0.34,
+}
+PUBLICATION_ABLATION_MODEL_PALETTE = {
+    model: plt.get_cmap("Blues")(value)
+    for model, value in PUBLICATION_ABLATION_BLUE_VALUES.items()
+}
+
 PBMC3K_CS_LENGTH_ROPU = [
     mcolors.to_hex(color)
     for color in sns.color_palette("RdPu", n_colors=5)

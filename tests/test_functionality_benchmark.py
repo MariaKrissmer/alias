@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import pandas as pd
 
 from alias.evaluation.functionality_benchmark import (
@@ -24,6 +23,10 @@ from alias.evaluation.functionality_benchmark import (
     load_source_scores,
     run_functionality_benchmark,
     summarize_ground_truth_ranks,
+)
+from alias.util.plots.color_definition import (
+    PUBLICATION_ABLATION_MODEL_LABELS,
+    PUBLICATION_ABLATION_MODEL_PALETTE,
 )
 
 
@@ -140,12 +143,15 @@ def test_summary_topk_metrics_count_missing_scores_as_failures():
 
 
 def test_ablation_palette_matches_celltype_annotation_blue_ramp():
-    palette = _ablation_model_palette(["MB", "MG", "MI"])
-    cmap = plt.get_cmap("Blues")
+    palette = _ablation_model_palette(["MB", "MG", "MF", "MH", "MI"])
 
-    assert palette["MB"] == cmap(0.92)
-    assert palette["MG"] == cmap(0.63)
-    assert palette["MI"] == cmap(0.34)
+    assert PUBLICATION_ABLATION_MODEL_LABELS["MF"] == "MC"
+    assert PUBLICATION_ABLATION_MODEL_LABELS["MH"] == "MC*"
+    assert palette["MB"] == PUBLICATION_ABLATION_MODEL_PALETTE["MB"]
+    assert palette["MG"] == PUBLICATION_ABLATION_MODEL_PALETTE["MG"]
+    assert palette["MF"] == PUBLICATION_ABLATION_MODEL_PALETTE["MF"]
+    assert palette["MH"] == PUBLICATION_ABLATION_MODEL_PALETTE["MH"]
+    assert palette["MI"] == PUBLICATION_ABLATION_MODEL_PALETTE["MI"]
 
 
 def test_benchmark_comparison_summary_keeps_only_mb_alias_model():
