@@ -1,0 +1,60 @@
+{
+  "config": {
+    "annotation_column": "celltype",
+    "batch_size": 250,
+    "celltypes_from_adata": true,
+    "celltypes_list": null,
+    "collect_cl_terms": false,
+    "dataset_id": "N5_ncbi_literature",
+    "diseases": null,
+    "email": "${NCBI_EMAIL}",
+    "fetch_if_missing": true,
+    "heldout_key": "cell_types",
+    "heldout_values": null,
+    "label_shuffle_original_column": "original_label",
+    "label_shuffle_seed": null,
+    "max_articles": 3000,
+    "max_retries": 3,
+    "max_tokens": 512,
+    "model": "neuml/pubmedbert-base-embeddings",
+    "organism": "mouse",
+    "output_dir": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/N5_ncbi_literature",
+    "overlap": 20,
+    "query_field": "Title/Abstract",
+    "query_include_plural": true,
+    "query_mode": "exact_title_abstract",
+    "random_state": 42,
+    "raw_articles_path": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/NCBI_raw_collection/lamanno_ncbi_articles_exact_title_abstract_mouse_embryo.csv",
+    "remove_multilabel_pmids": true,
+    "save_artifacts": true,
+    "semantic": false,
+    "shuffle_labels": false,
+    "test_split": null,
+    "tissue": "Embryo, Mammalian[Mesh]"
+  },
+  "created_at": "2026-07-30T03:56:49.185333+00:00",
+  "dataset_artifacts": {
+    "ncbi_data": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/N5_ncbi_literature/datasets/ncbi_data"
+  },
+  "dataset_id": "N5_ncbi_literature",
+  "heldout_values": {
+    "cell_types": []
+  },
+  "label_shuffle": null,
+  "label_shuffle_seed": 42,
+  "n_processed_rows": 10632,
+  "n_raw_article_rows": 5281,
+  "n_removed_by_heldout_filter": 0,
+  "n_removed_by_multilabel_filter": 7354,
+  "n_removed_multilabel_pmids": 2824,
+  "n_test_rows": 0,
+  "n_train_rows": 10632,
+  "report_artifacts": {
+    "article_collection_summary": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/N5_ncbi_literature/reports/article_collection_summary.csv",
+    "article_counts_by_celltype": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/N5_ncbi_literature/reports/article_counts_by_celltype.csv",
+    "article_counts_by_celltype_pdf": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/N5_ncbi_literature/reports/article_counts_by_celltype.pdf",
+    "ncbi_train_head": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/N5_ncbi_literature/reports/ncbi_train_head.csv"
+  },
+  "shuffle_labels": false,
+  "source": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/NCBI_raw_collection/lamanno_ncbi_articles_exact_title_abstract_mouse_embryo.csv"
+}

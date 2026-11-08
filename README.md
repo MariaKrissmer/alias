@@ -7,7 +7,7 @@ This is a first version of the codebase corresponding to our PrePrint [(bioRxiv)
 
 ![](images/concept.png)
 
-This branch contains the public reproducibility workflows for the manuscript's HIAI T-cell ablation study. It covers the six ablation models (`MA`, `MA*`, `MB`, `MC`, `MC*`, and `MD`) and the PubMedBERT baseline. 
+This branch contains the public reproducibility workflows for the manuscript's selected ALIAS models. It covers the HIAI T-cell ablation models (`MA`, `MA*`, `MB`, `MC`, `MC*`, and `MD`), the HIAI CMV-oriented literature model (`ME`), the LaManno donor/sample and timepoint generalization models (`MF` and `MG`), and the PubMedBERT baseline.
 
 
 ## Setup
@@ -39,33 +39,35 @@ cp .env.example .env
 
 ## Reproducibility inputs and outputs
 
-Raw HIAI data, generated datasets, model checkpoints, logs, credentials, and evaluation outputs are intentionally not tracked. Place the source HIAI `.h5ad` file under the project-local `out/` layout described by the scripts, and provide Hugging Face access through `.env` when using the published datasets or models.
+Raw HIAI and LaManno data, generated datasets, model checkpoints, logs, credentials, and evaluation outputs are intentionally not tracked. Place the source `.h5ad` files under the project-local `out/` layout described by the scripts, and provide Hugging Face access through `.env` when using the published datasets or models.
 
 The tracked provenance files are under [`reproducibility/`](reproducibility/):
 
-- `manifests/model_registry.yaml` maps manuscript labels to canonical model IDs.
+- `manifests/model_registry.yaml` maps manuscript labels to canonical model IDs and records the selected model weight source and SHA-256 digest.
 - `manifests/dataset_registry.yaml` maps dataset IDs to generation scripts and metadata.
 - `manifests/query_manifest.csv` contains the NCBI query strings.
 - `manifests/pmid_manifest.csv` contains the PMIDs used by the literature workflows.
 - `manifests/ncbi_raw_pmid_manifest.csv` contains the PMID-only raw NCBI retrieval record before dataset-specific filtering.
 - `manifests/split_manifest.json` contains the deterministic split indices and seeds.
 - `metadata/` contains sanitized dataset and model metadata without machine-specific paths.
-- `metadata/datasets/HIAI_Tcells/CL_raw_collection/` contains the raw Cell Ontology/scType term records used for CL-infused literature cell sentences.
+- `metadata/datasets/HIAI_Tcells/CL_raw_collection/` contains the raw Cell Ontology/scType term records used for the HIAI CL-infused literature cell sentences. The LaManno `N5` literature dataset was generated without CL term infusion, so no LaManno CL term summary is included.
 
-## HIAI ablation workflows
+## Selected HIAI workflows
 
-The commands below are the selected public workflows. They are intentionally explicit about canonical IDs; manuscript labels are used only in the registry and presentation tables.
+The commands below are the selected public HIAI workflows. They are intentionally explicit about canonical IDs; manuscript labels are used only in the registry and presentation tables.
 
 ### Generate datasets
 
 ```bash
 uv run python scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_N1_N3_ncbi_literature.py
+uv run python scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_N4_ncbi_literature_cmv.py
 uv run python scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_S2_heldout_donor_semantic_200k.py
 uv run python scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_S3_heldout_donor_nonsemantic_200k.py
 uv run python scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_S5_heldout_donor_semantic_shuffled_labels_200k.py
+uv run python scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_S7_heldout_donor_semantic_cmv_200k.py
 ```
 
-The NCBI script generates the N1 literature dataset and the N3 shuffled-literature control used in the ablation study. 
+The NCBI scripts generate the N1 literature dataset, the N3 shuffled-literature control used in the ablation study, and the N4 CMV-oriented literature dataset.
 
 ### Train models
 
@@ -76,6 +78,7 @@ uv run python scripts/revision1_v1/HIAI_Tcells/train_models/train_MG_S2_200k_lr5
 uv run python scripts/revision1_v1/HIAI_Tcells/train_models/train_MF_S3_200k_lr5e5.py
 uv run python scripts/revision1_v1/HIAI_Tcells/train_models/train_MH_S5_200k_lr5e5.py
 uv run python scripts/revision1_v1/HIAI_Tcells/train_models/train_MI_N1_200k_lr5e5.py
+uv run python scripts/revision1_v1/HIAI_Tcells/train_models/train_MM_S2_N4_200k_lr5e5.py
 ```
 
 ### Evaluate models
@@ -87,7 +90,30 @@ uv run python scripts/revision1_v1/HIAI_Tcells/celltype_annotation/run_celltype_
   --models Base,MI,MF,MG,MB,MJ,MH
 ```
 
-The generic checkpoint and downstream runners are available under `scripts/revision1_v1/HIAI_Tcells/`. They write generated artifacts under ignored `out/` directories and require the corresponding datasets, embeddings, and model checkpoints.
+## Selected LaManno workflows
+
+The LaManno workflows reproduce the held-out donor/sample and held-out timepoint models. `N5` uses NCBI literature only; CL term summaries are not included for this dataset.
+
+### Generate datasets
+
+```bash
+uv run python scripts/revision1_v1/LaManno/dataset_generation/generate_N5_ncbi_literature.py
+uv run python scripts/revision1_v1/LaManno/dataset_generation/generate_S9_heldout_sample_semantic.py
+uv run python scripts/revision1_v1/LaManno/dataset_generation/generate_S10_heldout_timepoint_semantic.py
+```
+
+### Train models
+
+```bash
+uv run python scripts/revision1_v1/LaManno/train_models/train_MO_S9_N5_lr5e5.py
+uv run python scripts/revision1_v1/LaManno/train_models/train_MP_S10_N5_lr5e5.py
+```
+
+### Evaluate models
+
+```bash
+uv run python scripts/revision1_v1/LaManno/evaluation/run_lamanno_embedding_evaluation.py
+```
 
 ## Selected models
 
@@ -99,6 +125,9 @@ The generic checkpoint and downstream runners are available under `scripts/revis
 | `MC` | HIAI non-semantic ablation | `MF` | Publication pending |
 | `MC*` | HIAI shuffled-label control | `MH` | Publication pending |
 | `MD` | HIAI literature-only model | `MI` | Publication pending |
+| `ME` | HIAI CMV-oriented literature model | `MM` | Publication pending |
+| `MF` | LaManno donor/sample generalization | `MO` | Publication pending |
+| `MG` | LaManno timepoint generalization | `MP` | Publication pending |
 | `Base` | PubMedBERT baseline | `neuml/pubmedbert-base-embeddings` | [model page](https://huggingface.co/neuml/pubmedbert-base-embeddings) |
 
 ## Getting Started
@@ -144,8 +173,6 @@ uv run pytest tests/test_integration_pipeline.py -v
 ```
 
 Tests run automatically on every push via GitHub Actions. See [`tests/README.md`](tests/README.md) for details. 
-
-
 
 
 

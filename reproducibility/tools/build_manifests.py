@@ -12,42 +12,66 @@ from pathlib import Path
 def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
 
 def build_literature_manifests(source_root: Path, destination_root: Path) -> None:
-    raw_source = source_root / "hiai_tcells_ncbi_articles_exact_title_abstract_blood_cells.csv"
     sources = {
-        "N1_ncbi_literature": raw_source,
-        "N3_ncbi_literature_shuffled_labels": raw_source,
+        "N1_ncbi_literature": {
+            "path": source_root
+            / "out/data/revision1_v1/HIAI_Tcells/NCBI_raw_collection/"
+            / "hiai_tcells_ncbi_articles_exact_title_abstract_blood_cells.csv",
+            "cell_type_column": "AIFI_L2",
+        },
+        "N3_ncbi_literature_shuffled_labels": {
+            "path": source_root
+            / "out/data/revision1_v1/HIAI_Tcells/NCBI_raw_collection/"
+            / "hiai_tcells_ncbi_articles_exact_title_abstract_blood_cells.csv",
+            "cell_type_column": "AIFI_L2",
+        },
+        "N4_ncbi_literature_cmv": {
+            "path": source_root
+            / "out/data/revision1_v1/HIAI_Tcells/NCBI_raw_collection/"
+            / "hiai_tcells_ncbi_cmv_articles_exact_title_abstract_blood_cells.csv",
+            "cell_type_column": "AIFI_L2",
+        },
+        "N5_ncbi_literature": {
+            "path": source_root
+            / "out/data/revision1_v1/LaManno/NCBI_raw_collection/"
+            / "lamanno_ncbi_articles_exact_title_abstract_mouse_embryo.csv",
+            "cell_type_column": "celltype",
+        },
     }
     query_rows: dict[tuple[str, str, str, str], dict[str, str]] = {}
     pmid_rows: dict[tuple[str, str, str], dict[str, str]] = {}
     raw_pmid_rows: dict[tuple[str, str, str], dict[str, str]] = {}
-    for dataset_id, source_path in sources.items():
+    for dataset_id, source_config in sources.items():
+        source_path = source_config["path"]
+        cell_type_column = source_config["cell_type_column"]
         with source_path.open("r", encoding="utf-8", newline="") as handle:
             for row in csv.DictReader(handle):
-                query_key = (dataset_id, row["AIFI_L2"], row["label"], row["Query"])
+                cell_type = row[cell_type_column]
+                query_key = (dataset_id, cell_type, row["label"], row["Query"])
                 query_rows[query_key] = {
                     "dataset_id": dataset_id,
-                    "cell_type": row["AIFI_L2"],
+                    "cell_type": cell_type,
                     "label": row["label"],
                     "query": row["Query"],
                 }
-                pmid_key = (dataset_id, row["PMID"], row["AIFI_L2"])
+                pmid_key = (dataset_id, row["PMID"], cell_type)
                 pmid_rows[pmid_key] = {
                     "dataset_id": dataset_id,
                     "pmid": row["PMID"],
-                    "cell_type": row["AIFI_L2"],
+                    "cell_type": cell_type,
                 }
-                raw_key = (row["PMID"], row["AIFI_L2"], row["Query"])
+                raw_key = (source_path.name, row["PMID"], cell_type, row["Query"])
                 raw_pmid_rows[raw_key] = {
                     "dataset_id": "NCBI_raw_collection",
                     "source_record": source_path.name,
                     "pmid": row["PMID"],
-                    "cell_type": row["AIFI_L2"],
+                    "cell_type": cell_type,
                     "label": row["label"],
                     "query": row["Query"],
                     "query_index": row.get("query_index", ""),
@@ -83,7 +107,7 @@ def build_literature_manifests(source_root: Path, destination_root: Path) -> Non
 
 def build_split_manifest(metadata_root: Path, destination: Path) -> None:
     split_manifest = {}
-    for split_path in sorted(metadata_root.glob("*/split_indices.json")):
+    for split_path in sorted(metadata_root.rglob("split_indices.json")):
         with split_path.open("r", encoding="utf-8") as handle:
             split_manifest[split_path.parent.name] = json.load(handle)
     destination.write_text(json.dumps(split_manifest, indent=2) + "\n", encoding="utf-8")

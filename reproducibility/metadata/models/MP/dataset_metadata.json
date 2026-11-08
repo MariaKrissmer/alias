@@ -1,0 +1,42 @@
+{
+  "ncbi": {
+    "columns": [
+      "negative",
+      "sentence1",
+      "sentence2"
+    ],
+    "eval_split": "ncbi_eval",
+    "n_eval_rows": 5261,
+    "n_train_rows": 47341,
+    "required_triplet_columns_missing": [
+      "label"
+    ],
+    "required_triplet_columns_present": [
+      "sentence1",
+      "sentence2",
+      "negative"
+    ],
+    "source": "mariakrissmer/ncbi_LaManno_N5_ncbi_literature",
+    "train_split": "ncbi_train"
+  },
+  "scrna": {
+    "columns": [
+      "negative",
+      "sentence1",
+      "sentence2"
+    ],
+    "eval_split": "scrna_eval",
+    "n_eval_rows": 120221,
+    "n_train_rows": 1081983,
+    "required_triplet_columns_missing": [
+      "label"
+    ],
+    "required_triplet_columns_present": [
+      "sentence1",
+      "sentence2",
+      "negative"
+    ],
+    "source": "mariakrissmer/scrna_LaManno_S10_heldout_timepoint_semantic",
+    "train_split": "scrna_train"
+  }
+}

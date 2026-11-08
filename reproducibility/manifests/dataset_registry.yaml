@@ -3,13 +3,16 @@ datasets:
     pmid_manifest: reproducibility/manifests/ncbi_raw_pmid_manifest.csv
     n1_query_summary: reproducibility/metadata/datasets/HIAI_Tcells/NCBI_raw_collection/records/N1_ncbi_query_pmid_summary.csv
     n3_query_summary: reproducibility/metadata/datasets/HIAI_Tcells/NCBI_raw_collection/records/N3_ncbi_query_pmid_summary.csv
-    source: Raw NCBI/PubMed retrieval record for HIAI T-cell literature datasets
+    n4_query_summary: reproducibility/metadata/datasets/HIAI_Tcells/NCBI_raw_collection/records/N4_ncbi_query_pmid_summary.csv
+    n5_query_summary: reproducibility/metadata/datasets/LaManno/NCBI_raw_collection/records/N5_ncbi_query_pmid_summary.csv
+    source: Raw NCBI/PubMed retrieval record for HIAI T-cell and LaManno literature datasets
     split_strategy: raw query-level PMID collection before dataset-specific filtering
     random_seed: null
   CL_raw_collection:
     cl_terms: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/hiai_tcells_cl_terms.csv
     n1_cl_summary: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/records/N1_cl_sctype_term_summary.csv
     n3_cl_summary: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/records/N3_cl_sctype_term_summary.csv
+    n4_cl_summary: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/records/N4_cl_sctype_term_summary.csv
     source: Raw Cell Ontology and scType term records used for CL infusion
     split_strategy: raw terminology collection before dataset-specific CL infusion
     random_seed: null
@@ -33,6 +36,25 @@ datasets:
     pmid_manifest: reproducibility/manifests/pmid_manifest.csv
     raw_pmid_manifest: reproducibility/manifests/ncbi_raw_pmid_manifest.csv
     raw_cl_terms: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/hiai_tcells_cl_terms.csv
+  N4_ncbi_literature_cmv:
+    generation_script: scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_N4_ncbi_literature_cmv.py
+    metadata: reproducibility/metadata/datasets/HIAI_Tcells/N4_ncbi_literature_cmv/generation_metadata.json
+    source: HIAI T-cell CMV-oriented NCBI literature
+    split_strategy: literature-only training dataset with CMV-oriented retrieval
+    random_seed: 42
+    query_manifest: reproducibility/manifests/query_manifest.csv
+    pmid_manifest: reproducibility/manifests/pmid_manifest.csv
+    raw_pmid_manifest: reproducibility/manifests/ncbi_raw_pmid_manifest.csv
+    raw_cl_terms: reproducibility/metadata/datasets/HIAI_Tcells/CL_raw_collection/hiai_tcells_cl_terms.csv
+  N5_ncbi_literature:
+    generation_script: scripts/revision1_v1/LaManno/dataset_generation/generate_N5_ncbi_literature.py
+    metadata: reproducibility/metadata/datasets/LaManno/N5_ncbi_literature/generation_metadata.json
+    source: LaManno mouse embryo NCBI literature
+    split_strategy: literature-only training dataset without CL term infusion
+    random_seed: 42
+    query_manifest: reproducibility/manifests/query_manifest.csv
+    pmid_manifest: reproducibility/manifests/pmid_manifest.csv
+    raw_pmid_manifest: reproducibility/manifests/ncbi_raw_pmid_manifest.csv
   S2_heldout_donor_semantic_200k:
     generation_script: scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_S2_heldout_donor_semantic_200k.py
     metadata: reproducibility/metadata/datasets/HIAI_Tcells/S2_heldout_donor_semantic_200k/generation_metadata.json
@@ -53,4 +75,25 @@ datasets:
     split_metadata: reproducibility/metadata/datasets/HIAI_Tcells/S5_heldout_donor_semantic_shuffled_labels_200k/split_indices.json
     source: HIAI human immune health atlas
     split_strategy: heldout donor with semantic cell sentences and shuffled training labels
+    random_seed: 42
+  S7_heldout_donor_semantic_cmv_200k:
+    generation_script: scripts/revision1_v1/HIAI_Tcells/dataset_generation/generate_S7_heldout_donor_semantic_cmv_200k.py
+    metadata: reproducibility/metadata/datasets/HIAI_Tcells/S7_heldout_donor_semantic_cmv_200k/generation_metadata.json
+    split_metadata: reproducibility/metadata/datasets/HIAI_Tcells/S7_heldout_donor_semantic_cmv_200k/split_indices.json
+    source: HIAI human immune health atlas with CMV metadata
+    split_strategy: heldout donor with semantic cell sentences and CMV metadata
+    random_seed: 42
+  S9_heldout_sample_semantic:
+    generation_script: scripts/revision1_v1/LaManno/dataset_generation/generate_S9_heldout_sample_semantic.py
+    metadata: reproducibility/metadata/datasets/LaManno/S9_heldout_sample_semantic/generation_metadata.json
+    split_metadata: reproducibility/metadata/datasets/LaManno/S9_heldout_sample_semantic/split_indices.json
+    source: LaManno mouse embryo atlas
+    split_strategy: heldout donor/sample with semantic cell sentences
+    random_seed: 42
+  S10_heldout_timepoint_semantic:
+    generation_script: scripts/revision1_v1/LaManno/dataset_generation/generate_S10_heldout_timepoint_semantic.py
+    metadata: reproducibility/metadata/datasets/LaManno/S10_heldout_timepoint_semantic/generation_metadata.json
+    split_metadata: reproducibility/metadata/datasets/LaManno/S10_heldout_timepoint_semantic/split_indices.json
+    source: LaManno mouse embryo atlas
+    split_strategy: heldout timepoint with semantic cell sentences
     random_seed: 42

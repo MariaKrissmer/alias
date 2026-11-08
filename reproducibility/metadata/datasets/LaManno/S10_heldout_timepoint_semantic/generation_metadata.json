@@ -1,0 +1,68 @@
+{
+  "dataset_artifacts": {
+    "adata_test": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/adata_test.h5ad",
+    "scrna_data": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/datasets/scrna_data",
+    "scrna_test": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/datasets/scrna_test",
+    "split_indices": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/metadata/split_indices.json"
+  },
+  "dataset_id": "S10_heldout_timepoint_semantic",
+  "report_artifacts": {
+    "celltype_proportions": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/reports/celltype_proportions.pdf",
+    "scrna_train_head": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/reports/scrna_train_head.csv",
+    "summary": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/reports/split_composition_summary.csv",
+    "time_coverage": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/reports/time_coverage.csv",
+    "time_coverage_pdf": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/reports/time_coverage.pdf",
+    "time_proportions": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic/reports/time_proportions.pdf"
+  },
+  "scrna_config": {
+    "annotation_column": "celltype",
+    "cs_length": [
+      50
+    ],
+    "dataset_id": "S10_heldout_timepoint_semantic",
+    "disease_column": null,
+    "disease_output_column": "disease_status",
+    "disease_value_map": null,
+    "donor_column": null,
+    "donor_test_size": null,
+    "group_column": null,
+    "group_key": "groups",
+    "group_test_size": null,
+    "heldout_column": "time",
+    "heldout_key": "timepoints",
+    "heldout_values": [
+      "12.0",
+      "17.0"
+    ],
+    "highly_variable_genes": true,
+    "housekeeping_genes": true,
+    "hvg_number": 3000,
+    "label_shuffle_original_column": "original_label",
+    "label_shuffle_seed": null,
+    "min_batch_cells": 5,
+    "min_cells": 5,
+    "min_genes": 100,
+    "mt_threshold": 15,
+    "nonsemantic_train_column": null,
+    "nonsemantic_train_key": "values",
+    "nonsemantic_train_values": null,
+    "output_dir": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/S10_heldout_timepoint_semantic",
+    "preprocessing": true,
+    "random_state": 42,
+    "report_columns": null,
+    "save_artifacts": true,
+    "semantic": true,
+    "shuffle_train_labels": false,
+    "source": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/lamanno_full.h5ad",
+    "split_strategy": "heldout_value",
+    "stratified_subsample": false,
+    "template_weights_default": null,
+    "template_weights_disease": null,
+    "template_weights_time": null,
+    "test_size": 0.4,
+    "time_column": "time",
+    "total_cells": null,
+    "verbose": true
+  },
+  "source": "${PROJECT_ROOT}/out/data/revision1_v1/LaManno/lamanno_full.h5ad"
+}
