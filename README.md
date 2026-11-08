@@ -27,7 +27,7 @@ cp .env.example .env
 
 ### Environment Variables
 
-The project requires Hugging Face tokens for accessing and uploading models/datasets, if own models are trained and saved. Models that are part of the manuscript, will be uploaded to public Hugging Face and will be available for usage shortly. 
+The project requires Hugging Face tokens for accessing and uploading models/datasets, if own models are trained and saved. The manuscript models are currently are available on Hugging Face; their repository links are listed below.
 
 **Quick setup:**
 ```bash
@@ -117,17 +117,19 @@ uv run python scripts/revision1_v1/LaManno/evaluation/run_lamanno_embedding_eval
 
 ## Selected models
 
+The ALIAS model repositories below are private while under review.
+
 | Manuscript label | Description | Canonical model | Hugging Face |
 |---|---|---|---|
-| `MA` | HIAI donor-generalization ablation | `MB` | Publication pending |
-| `MA*` | HIAI shuffled-literature control | `MJ` | Publication pending |
-| `MB` | HIAI metadata contribution | `MG` | Publication pending |
-| `MC` | HIAI non-semantic ablation | `MF` | Publication pending |
-| `MC*` | HIAI shuffled-label control | `MH` | Publication pending |
-| `MD` | HIAI literature-only model | `MI` | Publication pending |
-| `ME` | HIAI CMV-oriented literature model | `MM` | Publication pending |
-| `MF` | LaManno donor/sample generalization | `MO` | Publication pending |
-| `MG` | LaManno timepoint generalization | `MP` | Publication pending |
+| `MA` | HIAI donor-generalization ablation | `MB` | [ALIAS-MA](https://huggingface.co/mariakrissmer/ALIAS-MA) |
+| `MA*` | HIAI shuffled-literature control | `MJ` | [ALIAS-MA-star](https://huggingface.co/mariakrissmer/ALIAS-MA-star) |
+| `MB` | HIAI metadata contribution | `MG` | [ALIAS-MB](https://huggingface.co/mariakrissmer/ALIAS-MB) |
+| `MC` | HIAI non-semantic ablation | `MF` | [ALIAS-MC](https://huggingface.co/mariakrissmer/ALIAS-MC) |
+| `MC*` | HIAI shuffled-label control | `MH` | [ALIAS-MC-star](https://huggingface.co/mariakrissmer/ALIAS-MC-star) |
+| `MD` | HIAI literature-only model | `MI` | [ALIAS-MD](https://huggingface.co/mariakrissmer/ALIAS-MD) |
+| `ME` | HIAI CMV-oriented literature model | `MM` | [ALIAS-ME](https://huggingface.co/mariakrissmer/ALIAS-ME) |
+| `MF` | LaManno donor/sample generalization | `MO` | [ALIAS-MF](https://huggingface.co/mariakrissmer/ALIAS-MF) |
+| `MG` | LaManno timepoint generalization | `MP` | [ALIAS-MG](https://huggingface.co/mariakrissmer/ALIAS-MG) |
 | `Base` | PubMedBERT baseline | `neuml/pubmedbert-base-embeddings` | [model page](https://huggingface.co/neuml/pubmedbert-base-embeddings) |
 
 ## Getting Started
