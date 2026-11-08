@@ -1,0 +1,275 @@
+{
+  "epochs": [
+    {
+      "best_model_checkpoint": null,
+      "dataset": "ncbi",
+      "epoch": 1,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 3.2428186996793653,
+        "train_runtime": 2572.9429,
+        "train_samples_per_second": 37.527,
+        "train_steps_per_second": 0.586
+      },
+      "initial_metrics": {
+        "triplet_eval_ncbi_cosine_accuracy": 0.8759999871253967
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "scrna",
+      "epoch": 2,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 3.4093930292238137,
+        "train_runtime": 5014.4189,
+        "train_samples_per_second": 89.642,
+        "train_steps_per_second": 1.401
+      },
+      "initial_metrics": {
+        "triplet_eval_scrna_cosine_accuracy": 0.7799999713897705
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "ncbi",
+      "epoch": 3,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 2.767378381737974,
+        "train_runtime": 2576.3501,
+        "train_samples_per_second": 37.477,
+        "train_steps_per_second": 0.586
+      },
+      "initial_metrics": {
+        "triplet_eval_ncbi_cosine_accuracy": 0.8980000019073486
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "scrna",
+      "epoch": 4,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 3.266794025490659,
+        "train_runtime": 5023.9772,
+        "train_samples_per_second": 89.472,
+        "train_steps_per_second": 1.398
+      },
+      "initial_metrics": {
+        "triplet_eval_scrna_cosine_accuracy": 0.9959999918937683
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "ncbi",
+      "epoch": 5,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 2.4346328770743053,
+        "train_runtime": 2576.304,
+        "train_samples_per_second": 37.478,
+        "train_steps_per_second": 0.586
+      },
+      "initial_metrics": {
+        "triplet_eval_ncbi_cosine_accuracy": 0.9610000252723694
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "scrna",
+      "epoch": 6,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 3.2220149539869305,
+        "train_runtime": 5017.9457,
+        "train_samples_per_second": 89.579,
+        "train_steps_per_second": 1.4
+      },
+      "initial_metrics": {
+        "triplet_eval_scrna_cosine_accuracy": 0.9980000257492065
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "ncbi",
+      "epoch": 7,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 2.3038678039692346,
+        "train_runtime": 2576.8764,
+        "train_samples_per_second": 37.469,
+        "train_steps_per_second": 0.586
+      },
+      "initial_metrics": {
+        "triplet_eval_ncbi_cosine_accuracy": 0.9819999933242798
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "scrna",
+      "epoch": 8,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 3.2166077357489864,
+        "train_runtime": 5017.5429,
+        "train_samples_per_second": 89.586,
+        "train_steps_per_second": 1.4
+      },
+      "initial_metrics": {
+        "triplet_eval_scrna_cosine_accuracy": 0.9980000257492065
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "ncbi",
+      "epoch": 9,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 2.2123977099924863,
+        "train_runtime": 2578.0673,
+        "train_samples_per_second": 37.452,
+        "train_steps_per_second": 0.585
+      },
+      "initial_metrics": {
+        "triplet_eval_ncbi_cosine_accuracy": 0.9879999756813049
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "scrna",
+      "epoch": 10,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 4.299140882383447,
+        "train_runtime": 5008.8206,
+        "train_samples_per_second": 89.742,
+        "train_steps_per_second": 1.402
+      },
+      "initial_metrics": {
+        "triplet_eval_scrna_cosine_accuracy": 0.9980000257492065
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "ncbi",
+      "epoch": 11,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 4.510972429380423,
+        "train_runtime": 2574.3323,
+        "train_samples_per_second": 37.506,
+        "train_steps_per_second": 0.586
+      },
+      "initial_metrics": {
+        "triplet_eval_ncbi_cosine_accuracy": 0.3529999852180481
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "scrna",
+      "epoch": 12,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 4.852033671594155,
+        "train_runtime": 5004.2989,
+        "train_samples_per_second": 89.823,
+        "train_steps_per_second": 1.404
+      },
+      "initial_metrics": {
+        "triplet_eval_scrna_cosine_accuracy": 0.34700000286102295
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "ncbi",
+      "epoch": 13,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 3.784219658398486,
+        "train_runtime": 2569.4475,
+        "train_samples_per_second": 37.578,
+        "train_steps_per_second": 0.587
+      },
+      "initial_metrics": {
+        "triplet_eval_ncbi_cosine_accuracy": 0.5830000042915344
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "scrna",
+      "epoch": 14,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 3.4755544075933296,
+        "train_runtime": 5001.584,
+        "train_samples_per_second": 89.872,
+        "train_steps_per_second": 1.404
+      },
+      "initial_metrics": {
+        "triplet_eval_scrna_cosine_accuracy": 0.8289999961853027
+      }
+    },
+    {
+      "best_model_checkpoint": null,
+      "dataset": "ncbi",
+      "epoch": 15,
+      "eval_subset_size": 1000,
+      "evaluator": "TripletEvaluator",
+      "final_train_metrics": {
+        "epoch": 1.0,
+        "total_flos": 0.0,
+        "train_loss": 3.061189696992605,
+        "train_runtime": 2570.6413,
+        "train_samples_per_second": 37.56,
+        "train_steps_per_second": 0.587
+      },
+      "initial_metrics": {
+        "triplet_eval_ncbi_cosine_accuracy": 0.8569999933242798
+      }
+    }
+  ],
+  "mode": "multi_dataset"
+}

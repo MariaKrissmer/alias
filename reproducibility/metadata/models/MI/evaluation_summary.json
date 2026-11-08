@@ -1,0 +1,16 @@
+{
+  "best_model_checkpoint": null,
+  "eval_subset_size": 1000,
+  "evaluator": "TripletEvaluator",
+  "final_train_metrics": {
+    "epoch": 8.0,
+    "total_flos": 0.0,
+    "train_loss": 2.4419432774315366,
+    "train_runtime": 21160.7041,
+    "train_samples_per_second": 36.256,
+    "train_steps_per_second": 0.567
+  },
+  "initial_metrics": {
+    "triplet_eval_ncbi_cosine_accuracy": 0.925000011920929
+  }
+}

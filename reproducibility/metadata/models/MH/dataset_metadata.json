@@ -1,0 +1,22 @@
+{
+  "scrna": {
+    "columns": [
+      "negative",
+      "sentence1",
+      "sentence2"
+    ],
+    "eval_split": "scrna_eval",
+    "n_eval_rows": 49900,
+    "n_train_rows": 449094,
+    "required_triplet_columns_missing": [
+      "label"
+    ],
+    "required_triplet_columns_present": [
+      "sentence1",
+      "sentence2",
+      "negative"
+    ],
+    "source": "mariakrissmer/scrna_HIAI_Tcells_S5_heldout_donor_semantic_shuffled_labels_200k",
+    "train_split": "scrna_train"
+  }
+}
