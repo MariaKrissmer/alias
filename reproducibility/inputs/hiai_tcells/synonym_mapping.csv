@@ -1,0 +1,43 @@
+canonical_label,synonym_label,is_canonical_label,synonym_source
+CD8aa,CD8aa,True,canonical_label
+CD8aa,"CD8-alpha alpha positive, gamma-delta intraepithelial T cell",False,CL:cell_ontology_label
+CD8aa,"CD8-positive, gamma-delta intraepithelial T lymphocyte",False,CL:cell_ontology_synonym
+CD8aa,"CD8-positive, gamma-delta intraepithelial T-cell",False,CL:cell_ontology_synonym
+CD8aa,"CD8-positive, gamma-delta intraepithelial T-lymphocyte",False,CL:cell_ontology_synonym
+CD8aa,intraepithelial lymphocyte,False,CL:cell_ontology_synonym
+DN T cell,DN T cell,True,canonical_label
+DN T cell,double negative thymocyte,False,CL:cell_ontology_label
+DN T cell,CD4-CD8- T cell,False,CL:cell_ontology_synonym
+DN T cell,double negative T cell,False,CL:cell_ontology_synonym
+MAIT,MAIT,True,canonical_label
+MAIT,mucosal-associated invariant T cell,False,CL:cell_ontology_label
+MAIT,mucosal invariant T cell,False,CL:cell_ontology_synonym
+MAIT,mucosal invariant T lymphocyte,False,CL:cell_ontology_synonym
+MAIT,mucosal-associated invariant T lymphocyte,False,CL:cell_ontology_synonym
+Memory CD4 T cell,Memory CD4 T cell,True,canonical_label
+Memory CD4 T cell,"CD4-positive, alpha-beta memory T cell",False,CL:cell_ontology_label
+Memory CD4 T cell,"CD4-positive, alpha-beta memory T lymphocyte",False,CL:cell_ontology_synonym
+Memory CD8 T cell,Memory CD8 T cell,True,canonical_label
+Memory CD8 T cell,"CD8-positive, alpha-beta memory T cell",False,CL:cell_ontology_label
+Memory CD8 T cell,"CD8-positive, alpha-beta memory T lymphocyte",False,CL:cell_ontology_synonym
+Naive CD4 T cell,Naive CD4 T cell,True,canonical_label
+Naive CD4 T cell,"naive thymus-derived CD4-positive, alpha-beta T cell",False,CL:cell_ontology_label
+Naive CD4 T cell,naive CD4+ T cell,False,CL:cell_ontology_synonym
+Naive CD4 T cell,"naive thymus-derived CD4-positive, alpha-beta T lymphocyte",False,CL:cell_ontology_synonym
+Naive CD8 T cell,Naive CD8 T cell,True,canonical_label
+Naive CD8 T cell,"naive thymus-derived CD8-positive, alpha-beta T cell",False,CL:cell_ontology_label
+Naive CD8 T cell,naive CD8+ T cell,False,CL:cell_ontology_synonym
+Naive CD8 T cell,"naive thymus-dervied CD8-positive, alpha-beta T lymphocyte",False,CL:cell_ontology_synonym
+Proliferating T cell,Proliferating T cell,True,canonical_label
+Proliferating T cell,cycling T cell,False,CL:cell_ontology_label
+Treg,Treg,True,canonical_label
+Treg,"CD4-positive, CD25-positive, alpha-beta regulatory T cell",False,CL:cell_ontology_label
+Treg,"CD4-positive, CD25-positive, alpha-beta regulatory T lymphocyte",False,CL:cell_ontology_synonym
+Treg,suppressor T cell,False,CL:cell_ontology_synonym
+Treg,suppressor T lymphocyte,False,CL:cell_ontology_synonym
+Treg,FOXP3+ T cell,False,custom_synonym
+Treg,FOXP3+ T lymphocyte,False,custom_synonym
+gamma delta T,gamma delta T,True,canonical_label
+gamma delta T,gamma-delta T cell,False,CL:cell_ontology_label
+gamma delta T,gamma-delta T lymphocyte,False,CL:cell_ontology_synonym
+gamma delta T,gd T cell,False,CL:cell_ontology_synonym

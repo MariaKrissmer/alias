@@ -35,14 +35,29 @@ REQUIRED_EVALUATION_FILES = (
     "metadata.json",
 )
 
-CacheStatus = Literal["complete", "missing_evaluation", "missing_predictions"]
+CacheStatus = Literal[
+    "complete", "missing_evaluation", "missing_predictions", "different_model_source"
+]
 
 
-def get_annotation_cache_status(model_dir: Path | str) -> CacheStatus:
+def get_annotation_cache_status(
+    model_dir: Path | str,
+    *,
+    expected_model_source: str | None = None,
+) -> CacheStatus:
     """Return whether annotation predictions/evaluation artifacts are reusable."""
     model_path = Path(model_dir)
     if not (model_path / REQUIRED_PREDICTION_FILE).exists():
         return "missing_predictions"
+
+    if expected_model_source is not None:
+        try:
+            with (model_path / "metadata.json").open("r", encoding="utf-8") as handle:
+                metadata = json.load(handle)
+        except (OSError, ValueError):
+            return "different_model_source"
+        if metadata.get("model") != expected_model_source:
+            return "different_model_source"
 
     if all((model_path / file_name).exists() for file_name in REQUIRED_EVALUATION_FILES):
         return "complete"

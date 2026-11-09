@@ -42,8 +42,13 @@ from util.publication_plotting import (  # noqa: E402
 
 
 DATASET_ID = "S2_heldout_donor_semantic_200k"
-DATASET_DIR = PROJECT_ROOT / "out" / "data" / "revision1_v1" / "HIAI_Tcells" / DATASET_ID
-ANNOTATION_DIR = DATASET_DIR / "celltype_annotation"
+REVISION_DATA_ROOT = Path(
+    os.environ.get("ALIAS_REVISION_DATA_ROOT", PROJECT_ROOT / "out" / "data" / "revision1_v1")
+)
+DATASET_DIR = REVISION_DATA_ROOT / "HIAI_Tcells" / DATASET_ID
+ANNOTATION_DIR = Path(
+    os.environ.get("HIAI_TCELLS_ANNOTATION_OUTPUT_DIR", DATASET_DIR / "celltype_annotation")
+)
 PLOTS_DIR = ANNOTATION_DIR / "plots"
 
 

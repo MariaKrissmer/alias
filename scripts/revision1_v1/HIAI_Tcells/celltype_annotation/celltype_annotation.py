@@ -37,11 +37,16 @@ from alias.util.load_hf_model import load_hf_dataset
 
 DATASET_ID = "S2_heldout_donor_semantic_200k"
 ANNOTATION_COLUMN = "AIFI_L2"
-DATASET_DIR = PROJECT_ROOT / "out" / "data" / "revision1_v1" / "HIAI_Tcells" / DATASET_ID
+REVISION_DATA_ROOT = Path(
+    os.environ.get("ALIAS_REVISION_DATA_ROOT", PROJECT_ROOT / "out" / "data" / "revision1_v1")
+)
+DATASET_DIR = REVISION_DATA_ROOT / "HIAI_Tcells" / DATASET_ID
 ADATA_TEST_PATH = DATASET_DIR / "adata_test.h5ad"
 SCRNA_TEST_PATH = DATASET_DIR / "datasets" / "scrna_test"
 SCRNA_HF_DATASET = f"mariakrissmer/scrna_HIAI_Tcells_{DATASET_ID}"
-OUTPUT_DIR = DATASET_DIR / "celltype_annotation"
+OUTPUT_DIR = Path(
+    os.environ.get("HIAI_TCELLS_ANNOTATION_OUTPUT_DIR", DATASET_DIR / "celltype_annotation")
+)
 FORCE_RERUN = os.environ.get("HIAI_TCELLS_ANNOTATION_FORCE", "0").strip().lower() in {
     "1",
     "true",
@@ -152,42 +157,42 @@ COMPARISON_MODELS = [
     {
         "name": "MI",
         "kind": "sentence_transformer_similarity",
-        "model": _model_source("mariakrissmer/MI_HIAI_Tcells_N1_200k_lr5e5"),
+        "model": "mariakrissmer/ALIAS-MD",
         "batch_size": 256,
         "max_cells": 20000,
     },
     {
         "name": "MF",
         "kind": "sentence_transformer_similarity",
-        "model": _model_source("mariakrissmer/MF_HIAI_Tcells_S3_200k_lr5e5"),
+        "model": "mariakrissmer/ALIAS-MC",
         "batch_size": 256,
         "max_cells": 20000,
     },
     {
         "name": "MG",
         "kind": "sentence_transformer_similarity",
-        "model": _model_source("mariakrissmer/MG_HIAI_Tcells_S2_200k_lr5e5"),
+        "model": "mariakrissmer/ALIAS-MB",
         "batch_size": 256,
         "max_cells": 20000,
     },
     {
         "name": "MB",
         "kind": "sentence_transformer_similarity",
-        "model": _model_source("mariakrissmer/MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15"),
+        "model": "mariakrissmer/ALIAS-MA",
         "batch_size": 256,
         "max_cells": 20000,
     },
     {
         "name": "MJ",
         "kind": "sentence_transformer_similarity",
-        "model": _model_source("mariakrissmer/MJ_HIAI_Tcells_S2_N3_200k_lr5e5"),
+        "model": "mariakrissmer/ALIAS-MA-star",
         "batch_size": 256,
         "max_cells": 20000,
     },
     {
         "name": "MH",
         "kind": "sentence_transformer_similarity",
-        "model": _model_source("mariakrissmer/MH_HIAI_Tcells_S5_200k_lr5e5"),
+        "model": "mariakrissmer/ALIAS-MC-star",
         "batch_size": 256,
         "max_cells": 20000,
     },
@@ -347,8 +352,20 @@ def _evaluate_or_load_model(model_config: dict) -> pd.DataFrame:
     cache_status = (
         "missing_predictions"
         if FORCE_RERUN
-        else benchmark.get_annotation_cache_status(model_dir)
+        else benchmark.get_annotation_cache_status(
+            model_dir,
+            expected_model_source=(
+                str(model_config["model"])
+                if model_config["kind"] == "sentence_transformer_similarity"
+                else None
+            ),
+        )
     )
+    if cache_status == "different_model_source":
+        raise FileExistsError(
+            f"Existing predictions in {model_dir} use a different model source. "
+            "Set HIAI_TCELLS_ANNOTATION_OUTPUT_DIR to a new run directory."
+        )
 
     if cache_status == "complete":
         print(f"Using cached annotation benchmark for {model_name}: {model_dir}")
