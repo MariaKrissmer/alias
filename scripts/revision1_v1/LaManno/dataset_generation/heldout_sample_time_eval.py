@@ -20,21 +20,25 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from alias.util.plots.color_definition import COLORMAPS
+from alias.util.plots.color_definition import COLORMAPS, LAMANNO_HEATMAP_GRID_COLOR
 
 
-BASE_OUTPUT_DIR = PROJECT_ROOT / "out" / "data" / "revision1_v1" / "LaManno"
+BASE_OUTPUT_DIR = Path(
+    os.environ.get("ALIAS_REVISION_DATA_ROOT", PROJECT_ROOT / "out" / "data" / "revision1_v1")
+) / "LaManno"
 SOURCE_H5AD = BASE_OUTPUT_DIR / "lamanno_full.h5ad"
-OUTPUT_DIR = BASE_OUTPUT_DIR / "heldout_sample_time_eval"
+OUTPUT_DIR = Path(
+    os.environ.get("LAMANNO_SPLIT_REPORT_OUTPUT_DIR", BASE_OUTPUT_DIR / "heldout_sample_time_eval")
+)
 SAMPLE_COLUMN = "sample"
 TIME_COLUMN = "time"
 
 DATASETS = [
-    ("S5", "S9_heldout_sample_semantic"),
-    ("S6", "S10_heldout_timepoint_semantic"),
+    ("S9", "S9_heldout_sample_semantic"),
+    ("S10", "S10_heldout_timepoint_semantic"),
 ]
-SAMPLE_REPORT_SPLITS = [("S5", "train"), ("S5", "test")]
-TIME_REPORT_SPLITS = [("S6", "train"), ("S5", "test")]
+SAMPLE_REPORT_SPLITS = [("S9", "train"), ("S9", "test")]
+TIME_REPORT_SPLITS = [("S10", "train"), ("S9", "test")]
 
 
 def _decode_value(value: Any) -> Any:
@@ -185,7 +189,7 @@ def plot_presence_heatmap(
         vmax=1,
         cbar=False,
         linewidths=0.25,
-        linecolor="#d9d9d9",
+        linecolor=LAMANNO_HEATMAP_GRID_COLOR,
         ax=ax,
     )
     ax.set_xlabel(x_label)
@@ -241,7 +245,7 @@ def main() -> None:
         value_name="sample",
         output_stem="sample_presence_heatmap",
         x_label="Sample",
-        title="Sample presence across LaManno S5 train/test split",
+        title="Sample presence across LaManno S9 train/test split",
         selected_splits=SAMPLE_REPORT_SPLITS,
     )
     time_outputs = write_column_report(
@@ -250,7 +254,7 @@ def main() -> None:
         value_name="time",
         output_stem="time_presence_heatmap",
         x_label="Time point",
-        title="Time point presence across LaManno S6 train and S5 test splits",
+        title="Time point presence across LaManno S10 train and S9 test splits",
         selected_splits=TIME_REPORT_SPLITS,
     )
 

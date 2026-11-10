@@ -32,11 +32,17 @@ os.environ.setdefault("MPLCONFIGDIR", str(PROJECT_ROOT / ".matplotlib"))
 import scanpy as sc  # noqa: E402
 
 from alias import evaluation as ev  # noqa: E402
-from checkpoints import resolve_best_checkpoint_model_source  # noqa: E402
 from lineages import LAMANNO_LINEAGES  # noqa: E402
 
 
-REVISION_DIR = PROJECT_ROOT / "out" / "data" / "revision1_v1" / "LaManno"
+REVISION_DIR = Path(
+    os.environ.get("ALIAS_REVISION_DATA_ROOT", PROJECT_ROOT / "out" / "data" / "revision1_v1")
+) / "LaManno"
+ANALYSIS_RUN_DIR = (
+    Path(os.environ["LAMANNO_ANALYSIS_RUN_DIR"])
+    if "LAMANNO_ANALYSIS_RUN_DIR" in os.environ
+    else None
+)
 ANNOTATION_COLUMN = "celltype"
 EVALUATION_DATASET_ID = "S9_heldout_sample_semantic"
 HELDOUT_TIMEPOINT_DATASET_ID = "S10_heldout_timepoint_semantic"
@@ -46,14 +52,12 @@ HELDOUT_TIMEPOINT_DATASET_ID = "S10_heldout_timepoint_semantic"
 class LaMannoHeldoutTimepointSpec:
     model_label: str
     model_id: str
-    checkpoint_model_id: str | None = None
 
 
 EVALUATION_SPECS: dict[str, LaMannoHeldoutTimepointSpec] = {
     "MP": LaMannoHeldoutTimepointSpec(
         model_label="MP",
-        model_id="mariakrissmer/MP_LaManno_S10_N5_lr5e5",
-        checkpoint_model_id="MP_LaManno_S10_N5_lr5e5",
+        model_id="mariakrissmer/ALIAS-MG",
     ),
 }
 
@@ -73,8 +77,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--max-cells", type=int, default=50000)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--force-regenerate", action="store_true")
-    parser.add_argument("--use-configured-model-ids", action="store_true")
-    parser.add_argument("--allow-missing-best-checkpoint", action="store_true")
     parser.add_argument("--n-neighbors", type=int, default=50)
     parser.add_argument("--min-dist", type=float, default=0.5)
     parser.add_argument("--n-components", type=int, default=50)
@@ -118,29 +120,20 @@ def _run_one_spec(
 ) -> dict[str, str]:
     s9_dataset_dir = REVISION_DIR / EVALUATION_DATASET_ID
     s10_dataset_dir = REVISION_DIR / HELDOUT_TIMEPOINT_DATASET_ID
-    output_dir = s9_dataset_dir / "evaluation_plots" / "heldout_timepoint_eval"
+    output_dir = (
+        ANALYSIS_RUN_DIR / HELDOUT_TIMEPOINT_DATASET_ID / spec.model_label / "heldout_timepoint_eval"
+        if ANALYSIS_RUN_DIR is not None
+        else s9_dataset_dir / "evaluation_plots" / "heldout_timepoint_eval"
+    )
+    embedding_output_dir = (
+        ANALYSIS_RUN_DIR / "embeddings" / spec.model_label
+        if ANALYSIS_RUN_DIR is not None
+        else s9_dataset_dir
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    best_checkpoint_metadata_path = (
-        s9_dataset_dir
-        / "checkpoint_validation_score"
-        / spec.checkpoint_model_id
-        / "best_checkpoint.json"
-        if spec.checkpoint_model_id is not None
-        else None
-    )
-    model_source, model_source_metadata = resolve_best_checkpoint_model_source(
-        model_label=spec.model_label,
-        configured_model_id=spec.model_id,
-        best_checkpoint_metadata_path=best_checkpoint_metadata_path,
-        use_configured_model_id=args.use_configured_model_ids,
-        allow_missing_best_checkpoint=args.allow_missing_best_checkpoint,
-    )
-    model_output_names = None
-    if spec.checkpoint_model_id is not None and model_source_metadata.get("best_checkpoint"):
-        model_output_names = {
-            model_source: f"{spec.checkpoint_model_id}_{model_source_metadata['best_checkpoint']}"
-        }
+    model_source = spec.model_id
+    model_source_metadata = {"source": "public_huggingface_model", "model_id": model_source}
 
     scrna_test = load_from_disk(str(s9_dataset_dir / "datasets" / "scrna_test"))
     s9_adata = sc.read_h5ad(s9_dataset_dir / "adata_test.h5ad")
@@ -151,11 +144,10 @@ def _run_one_spec(
         embedding_models=[model_source],
         model_type="sentence_transformer",
         batch_size=args.batch_size,
-        output_dir=str(s9_dataset_dir),
+        output_dir=str(embedding_output_dir),
         max_cells=args.max_cells,
         index=True,
         force_regenerate=args.force_regenerate,
-        model_output_names=model_output_names,
     )
     evaluation_config = ev.EvaluationConfig(
         n_neighbors=args.n_neighbors,

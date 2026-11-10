@@ -33,7 +33,6 @@ os.environ.setdefault("MPLCONFIGDIR", str(PROJECT_ROOT / ".matplotlib"))
 import scanpy as sc  # noqa: E402
 
 from alias import evaluation as ev  # noqa: E402
-from checkpoints import resolve_best_checkpoint_model_source  # noqa: E402
 from lineages import (  # noqa: E402
     LAMANNO_GROUPS_L,
     LAMANNO_GROUPS_M_SPLIT,
@@ -42,7 +41,14 @@ from lineages import (  # noqa: E402
 )
 
 
-REVISION_DIR = PROJECT_ROOT / "out" / "data" / "revision1_v1" / "LaManno"
+REVISION_DIR = Path(
+    os.environ.get("ALIAS_REVISION_DATA_ROOT", PROJECT_ROOT / "out" / "data" / "revision1_v1")
+) / "LaManno"
+ANALYSIS_RUN_DIR = (
+    Path(os.environ["LAMANNO_ANALYSIS_RUN_DIR"])
+    if "LAMANNO_ANALYSIS_RUN_DIR" in os.environ
+    else None
+)
 ANNOTATION_COLUMN = "celltype"
 EVALUATION_DATASET_ID = "S9_heldout_sample_semantic"
 
@@ -52,21 +58,18 @@ class LaMannoEvaluationSpec:
     model_label: str
     dataset_id: str
     model_id: str
-    checkpoint_model_id: str | None = None
 
 
 EVALUATION_SPECS: dict[str, LaMannoEvaluationSpec] = {
     "MO": LaMannoEvaluationSpec(
         model_label="MO",
         dataset_id=EVALUATION_DATASET_ID,
-        model_id="mariakrissmer/MO_LaManno_S9_N5_lr5e5",
-        checkpoint_model_id="MO_LaManno_S9_N5_lr5e5",
+        model_id="mariakrissmer/ALIAS-MF",
     ),
     "MP": LaMannoEvaluationSpec(
         model_label="MP",
         dataset_id=EVALUATION_DATASET_ID,
-        model_id="mariakrissmer/MP_LaManno_S10_N5_lr5e5",
-        checkpoint_model_id="MP_LaManno_S10_N5_lr5e5",
+        model_id="mariakrissmer/ALIAS-MG",
     ),
 }
 DEFAULT_MODEL_LABELS = ("MO", "MP")
@@ -96,22 +99,6 @@ def _parse_args() -> argparse.Namespace:
         "--force-regenerate",
         action="store_true",
         help="Regenerate embeddings instead of reusing a matching cached embedding run.",
-    )
-    parser.add_argument(
-        "--use-configured-model-ids",
-        action="store_true",
-        help=(
-            "Use the configured model IDs instead of the local best checkpoints "
-            "from checkpoint_validation_score."
-        ),
-    )
-    parser.add_argument(
-        "--allow-missing-best-checkpoint",
-        action="store_true",
-        help=(
-            "Fall back to the configured model ID when a selected model has no "
-            "best_checkpoint.json from checkpoint validation."
-        ),
     )
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
@@ -256,36 +243,21 @@ def _run_grouped_celltype_umap_plots(
 
 def _run_one_spec(spec: LaMannoEvaluationSpec, args: argparse.Namespace) -> dict[str, str]:
     dataset_dir = REVISION_DIR / spec.dataset_id
-    evaluation_plot_dir = dataset_dir / "evaluation_plots"
+    evaluation_plot_dir = (
+        ANALYSIS_RUN_DIR / spec.dataset_id / spec.model_label / "evaluation_plots"
+        if ANALYSIS_RUN_DIR is not None
+        else dataset_dir / "evaluation_plots"
+    )
+    embedding_output_dir = (
+        ANALYSIS_RUN_DIR / "embeddings" / spec.model_label
+        if ANALYSIS_RUN_DIR is not None
+        else dataset_dir
+    )
     evaluation_plot_dir.mkdir(parents=True, exist_ok=True)
 
-    best_checkpoint_metadata_path = None
-    if spec.checkpoint_model_id is not None:
-        best_checkpoint_metadata_path = (
-            dataset_dir
-            / "checkpoint_validation_score"
-            / spec.checkpoint_model_id
-            / "best_checkpoint.json"
-        )
-    model_source, model_source_metadata = resolve_best_checkpoint_model_source(
-        model_label=spec.model_label,
-        configured_model_id=spec.model_id,
-        best_checkpoint_metadata_path=best_checkpoint_metadata_path,
-        use_configured_model_id=args.use_configured_model_ids,
-        allow_missing_best_checkpoint=args.allow_missing_best_checkpoint,
-    )
+    model_source = spec.model_id
+    model_source_metadata = {"source": "public_huggingface_model", "model_id": model_source}
     print(f"\n=== {spec.model_label}: {model_source} on {spec.dataset_id} ===")
-    if model_source_metadata.get("best_checkpoint"):
-        print(
-            "Using best checkpoint from validation: "
-            f"{model_source_metadata['best_checkpoint']} "
-            f"(joint_validation_score={model_source_metadata.get('joint_validation_score')})"
-        )
-    model_output_names = None
-    if spec.checkpoint_model_id is not None and model_source_metadata.get("best_checkpoint"):
-        model_output_names = {
-            model_source: f"{spec.checkpoint_model_id}_{model_source_metadata['best_checkpoint']}"
-        }
     scrna_test_path = dataset_dir / "datasets" / "scrna_test"
     if not scrna_test_path.exists():
         raise FileNotFoundError(f"Missing local scrna_test at {scrna_test_path}")
@@ -302,11 +274,10 @@ def _run_one_spec(spec: LaMannoEvaluationSpec, args: argparse.Namespace) -> dict
         model_type="sentence_transformer",
         batch_size=args.batch_size,
         additional_data=timepoint_labels,
-        output_dir=str(dataset_dir),
+        output_dir=str(embedding_output_dir),
         max_cells=args.max_cells,
         index=True,
         force_regenerate=args.force_regenerate,
-        model_output_names=model_output_names,
     )
     evaluation_config = ev.EvaluationConfig(
         n_neighbors=args.n_neighbors,
@@ -324,6 +295,7 @@ def _run_one_spec(spec: LaMannoEvaluationSpec, args: argparse.Namespace) -> dict
     run_umap = not args.only_timepoint_similarity
     run_pseudotime = not args.only_timepoint_similarity and not args.only_umap
     run_timepoint_similarity = not args.only_umap
+    run_celltype_similarity = run_pseudotime
 
     precomputed_umaps = {}
     if run_umap:
@@ -354,16 +326,26 @@ def _run_one_spec(spec: LaMannoEvaluationSpec, args: argparse.Namespace) -> dict
         pseudotime_df.to_csv(pseudotime_path, index=False)
         outputs["pseudotime_summary"] = str(pseudotime_path)
 
+    if run_celltype_similarity:
+        celltype_similarity_df = ev.cell_type_label_similarity(
+            embeddings_dict=embeddings_dict,
+            annotation_column=ANNOTATION_COLUMN,
+            config=ev.CellTypeSimilarityConfig(output_dir=evaluation_plot_dir),
+        )
+        celltype_similarity_path = evaluation_plot_dir / f"{spec.model_label}_celltype_label_similarity.csv"
+        celltype_similarity_df.to_csv(celltype_similarity_path, index=False)
+        outputs["celltype_label_similarity"] = str(celltype_similarity_path)
+
     if run_timepoint_similarity:
         saved_model_name = next(iter(embeddings_dict))
         timepoint_similarity_df = ev.lamanno_timepoint_similarity(
             embeddings_dict=embeddings_dict,
             eval_data={"adata": adata, "adata_path": adata_path},
             config=ev.LaMannoTimepointSimilarityConfig(
-            output_dir=evaluation_plot_dir,
-            lineages=LAMANNO_LINEAGES,
-            lineage_celltype_order=LAMANNO_LINEAGE_CELLTYPE_ORDER,
-            annotation_column=ANNOTATION_COLUMN,
+                output_dir=evaluation_plot_dir,
+                lineages=LAMANNO_LINEAGES,
+                lineage_celltype_order=LAMANNO_LINEAGE_CELLTYPE_ORDER,
+                annotation_column=ANNOTATION_COLUMN,
                 time_column="time",
                 model_name_map={saved_model_name: model_source},
             ),
