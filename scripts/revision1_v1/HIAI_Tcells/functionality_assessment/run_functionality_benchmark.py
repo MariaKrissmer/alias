@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+import json
 import logging
 import os
 from pathlib import Path
@@ -30,12 +31,33 @@ from util.publication_plotting import ordered_present_models  # noqa: E402
 
 
 DATASET_ID = "S2_heldout_donor_semantic_200k"
-DATASET_DIR = PROJECT_ROOT / "out" / "data" / "revision1_v1" / "HIAI_Tcells" / DATASET_ID
-SCRNA_TEST_PATH = DATASET_DIR / "datasets" / "scrna_test"
-SCRNA_HF_DATASET = f"mariakrissmer/scrna_HIAI_Tcells_{DATASET_ID}"
-EVALUATION_ROOT = DATASET_DIR / "evaluation_plots"
-OUTPUT_DIR = DATASET_DIR / "functionality_assessment" / "benchmark"
-FUNCTIONALITY_MAPPING_PATH = DATASET_DIR / "functionality_assessment" / "functionality_mapping.csv"
+REVISION_DATA_ROOT = Path(
+    os.environ.get("ALIAS_REVISION_DATA_ROOT", PROJECT_ROOT / "out" / "data" / "revision1_v1")
+)
+DATASET_DIR = REVISION_DATA_ROOT / "HIAI_Tcells" / DATASET_ID
+EVALUATION_ROOT = Path(
+    os.environ.get("HIAI_TCELLS_FUNCTIONALITY_EVALUATION_ROOT", DATASET_DIR / "evaluation_plots")
+)
+OUTPUT_DIR = Path(
+    os.environ.get(
+        "HIAI_TCELLS_FUNCTIONALITY_BENCHMARK_OUTPUT_DIR",
+        DATASET_DIR / "functionality_assessment" / "benchmark",
+    )
+)
+ALIAS_RESULTS_ROOT = Path(
+    os.environ.get(
+        "HIAI_TCELLS_FUNCTIONALITY_ALIAS_SCORES_ROOT",
+        DATASET_DIR / "functionality_assessment" / "alias_model_scores",
+    )
+)
+FUNCTIONALITY_INPUT_ROOT = Path(
+    os.environ.get(
+        "HIAI_TCELLS_FUNCTIONALITY_INPUT_ROOT",
+        PROJECT_ROOT / "reproducibility" / "inputs" / "hiai_tcells" / "functionality_assessment",
+    )
+)
+FUNCTIONALITY_MAPPING_PATH = FUNCTIONALITY_INPUT_ROOT / "functionality_mapping.csv"
+BASELINE_ROOT = FUNCTIONALITY_INPUT_ROOT / "baselines"
 EMBEDDING_ROOT = DATASET_DIR / "embeddings"
 ANNOTATION_COLUMN = "AIFI_L2"
 MAX_CELLS = int(os.environ.get("FUNCTIONALITY_BENCHMARK_MAX_CELLS", "20000"))
@@ -101,10 +123,7 @@ ABLATION_MODELS = [
     ModelSpec(
         label="MB",
         artifact_name="MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15_epoch_15_ncbi",
-        model_id=PROJECT_ROOT
-        / "models"
-        / "MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15_all"
-        / "epoch_15_ncbi",
+        model_id="mariakrissmer/ALIAS-MA",
         fallback_artifact_names=(
             "MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15",
             "MB_HIAI_Tcells_S2_N1_200k_lr5e5",
@@ -114,29 +133,29 @@ ABLATION_MODELS = [
     ModelSpec(
         label="MJ",
         artifact_name="MJ_HIAI_Tcells_S2_N3_200k_lr5e5",
-        model_id="mariakrissmer/MJ_HIAI_Tcells_S2_N3_200k_lr5e5",
+        model_id="mariakrissmer/ALIAS-MA-star",
     ),
     ModelSpec(
         label="MG",
         artifact_name="MG_HIAI_Tcells_S2_200k_lr5e5_all",
-        model_id=PROJECT_ROOT / "models" / "MG_HIAI_Tcells_S2_200k_lr5e5_all",
+        model_id="mariakrissmer/ALIAS-MB",
         fallback_artifact_names=("MG_HIAI_Tcells_S2_200k_lr5e5", "MG_HIAI_Tcells_S2_200k"),
     ),
     ModelSpec(
         label="MH",
         artifact_name="MH_HIAI_Tcells_S5_200k_lr5e5",
-        model_id="mariakrissmer/MH_HIAI_Tcells_S5_200k_lr5e5",
+        model_id="mariakrissmer/ALIAS-MC-star",
     ),
     ModelSpec(
         label="MF",
         artifact_name="MF_HIAI_Tcells_S3_200k_lr5e5_all",
-        model_id=PROJECT_ROOT / "models" / "MF_HIAI_Tcells_S3_200k_lr5e5_all",
+        model_id="mariakrissmer/ALIAS-MC",
         fallback_artifact_names=("MF_HIAI_Tcells_S3_200k_lr5e5", "MF_HIAI_Tcells_S3_200k"),
     ),
     ModelSpec(
         label="MI",
         artifact_name="MI_HIAI_Tcells_N1_200k_lr5e5_all",
-        model_id=PROJECT_ROOT / "models" / "MI_HIAI_Tcells_N1_200k_lr5e5_all",
+        model_id="mariakrissmer/ALIAS-MD",
         fallback_artifact_names=("MI_HIAI_Tcells_N1_200k_lr5e5", "MI_HIAI_Tcells_N1_200k"),
     ),
     ModelSpec(
@@ -150,7 +169,7 @@ ABLATION_MODELS = [
 EXTERNAL_BASELINES = [
     FunctionalityBenchmarkSource(
         source_name="cellwhisperer_cell",
-        path=DATASET_DIR / "functionality_assessment" / "baselines" / "cellwhisperer_cell_results.csv",
+        path=BASELINE_ROOT / "cellwhisperer_cell_results.csv",
         source_format="cellwhisperer_results",
         assignment_level="cellwhisperer_cell",
         score_column="mean_auc",
@@ -158,14 +177,14 @@ EXTERNAL_BASELINES = [
     ),
     FunctionalityBenchmarkSource(
         source_name="llama_label",
-        path=DATASET_DIR / "functionality_assessment" / "baselines" / "cell_type_pairwise_wins_llama3_3_70B.csv",
+        path=BASELINE_ROOT / "cell_type_pairwise_wins_llama3_3_70B.csv",
         source_format="llm_matrix",
         assignment_level="llm_label",
         model_name="Llama-3.3-70B",
     ),
     FunctionalityBenchmarkSource(
         source_name="qwen_label",
-        path=DATASET_DIR / "functionality_assessment" / "baselines" / "cell_type_pairwise_wins_qwen3_235B.csv",
+        path=BASELINE_ROOT / "cell_type_pairwise_wins_qwen3_235B.csv",
         source_format="llm_matrix",
         assignment_level="llm_label",
         model_name="Qwen3-235B",
@@ -173,129 +192,36 @@ EXTERNAL_BASELINES = [
 ]
 
 
-def _model_artifact_names(model: ModelSpec) -> tuple[str, ...]:
-    return (model.artifact_name, *model.fallback_artifact_names)
-
-
 def _latest_functionality_results(model: ModelSpec) -> Path | None:
-    for artifact_name in _model_artifact_names(model):
-        candidates = sorted(
-            (
-                EVALUATION_ROOT
-                / artifact_name
-                / "scrna"
-                / "functionality_similarity"
-            ).glob("*/results_df.csv"),
-            reverse=True,
-        )
-        if candidates:
-            return candidates[0]
-
-        flat_candidate = EVALUATION_ROOT / artifact_name / f"{artifact_name}_functionality_similarity.csv"
-        if flat_candidate.exists():
-            return flat_candidate
+    for run_dir in sorted((ALIAS_RESULTS_ROOT / model.label).glob("*"), reverse=True):
+        results_path = run_dir / "results_df.csv"
+        metadata_path = run_dir / "metadata.json"
+        if not results_path.exists() or not metadata_path.exists():
+            continue
+        with metadata_path.open("r", encoding="utf-8") as handle:
+            metadata = json.load(handle)
+        if metadata.get("model_id") == str(model.model_id):
+            return results_path
     return None
 
 
-def _load_scrna_test():
-    from datasets import load_from_disk
-    from alias.util.load_hf_model import load_hf_dataset
-
-    if SCRNA_TEST_PATH.exists():
-        try:
-            return load_from_disk(str(SCRNA_TEST_PATH))
-        except Exception as error:
-            print(
-                f"Could not load local scrna_test from {SCRNA_TEST_PATH}: "
-                f"{type(error).__name__}: {error}"
-            )
-            print(f"Falling back to Hugging Face dataset: {SCRNA_HF_DATASET}")
-
-    dataset = load_hf_dataset(SCRNA_HF_DATASET)
-    if isinstance(dataset, dict):
-        for split_name in ("test", "scrna_test"):
-            if split_name in dataset:
-                return dataset[split_name]
-        raise KeyError(
-            f"Could not find a test split in {SCRNA_HF_DATASET}. "
-            f"Available splits: {sorted(dataset.keys())}"
-        )
-    return dataset
-
-
-def _model_source(model_id: str | Path) -> str | Path:
-    model_path = Path(model_id)
-    if model_path.exists():
-        return model_path
-
-    local_path = PROJECT_ROOT / "models" / str(model_id)
-    if local_path.exists():
-        return local_path
-
-    return str(model_id)
-
-
-def _rekey_embeddings_dict(embeddings_dict: dict, model_id: str | Path, artifact_name: str) -> dict:
-    from alias.evaluation.embedding import clean_model_name
-
-    source_key = clean_model_name(str(model_id))
-    if source_key not in embeddings_dict:
-        return embeddings_dict
-    return {artifact_name: embeddings_dict[source_key]}
-
-
 def _generate_functionality_results(model: ModelSpec, *, force_regenerate: bool = False) -> Path:
-    from alias import evaluation as ev
+    from alias.evaluation.functionality_benchmark import generate_alias_functionality_results
 
-    model_source = _model_source(model.model_id)
-    print(f"Generating functionality_similarity for {model.label}: {model_source}")
-    scrna_test = _load_scrna_test()
-    embeddings_dict = ev.generate_embeddings(
-        evaluation_dict={"scrna": {"test": scrna_test}},
-        embedding_config=ev.GenEmbeddingsConfig(
-            embedding_models=[str(model_source)],
-            model_type="sentence_transformer",
-            batch_size=BATCH_SIZE,
-            output_dir=str(EMBEDDING_ROOT / model.artifact_name),
-            max_cells=MAX_CELLS,
-            annotation_column=ANNOTATION_COLUMN,
-            additional_data=CELLTYPE_FUNCTIONALITY_DESCRIPTIONS,
-            force_regenerate=force_regenerate,
-        ),
-    )
-    embeddings_dict = _rekey_embeddings_dict(
-        embeddings_dict,
-        model_id=model_source,
-        artifact_name=model.artifact_name,
-    )
-    embeddings_dict = ev.umap_plots(
-        embeddings_dict=embeddings_dict,
+    return generate_alias_functionality_results(
+        dataset_id=DATASET_ID,
+        model_label=model.label,
+        model_id=str(model.model_id),
+        descriptions=CELLTYPE_FUNCTIONALITY_DESCRIPTIONS,
+        true_label_map=FUNCTIONALITY_TRUE_LABEL_MAP,
+        embedding_root=EMBEDDING_ROOT,
+        evaluation_root=EVALUATION_ROOT,
+        results_root=ALIAS_RESULTS_ROOT,
         annotation_column=ANNOTATION_COLUMN,
-        output_dir=str(EVALUATION_ROOT),
-        evaluation_config=ev.EvaluationConfig(
-            n_neighbors=15,
-            min_dist=0.5,
-            random_state=21,
-            n_components=25,
-        ),
+        max_cells=MAX_CELLS,
+        batch_size=BATCH_SIZE,
+        force_regenerate=force_regenerate,
     )
-    functionality_df = ev.functionality_similarity(
-        embeddings_dict=embeddings_dict,
-        annotation_column=ANNOTATION_COLUMN,
-        config=ev.FunctionalitySimilarityConfig(
-            similarity_metric="cosine",
-            bins=60,
-            output_dir=EVALUATION_ROOT,
-            plot=True,
-            true_label_map=FUNCTIONALITY_TRUE_LABEL_MAP,
-        ),
-    )
-    output_dir = EVALUATION_ROOT / model.artifact_name
-    output_dir.mkdir(parents=True, exist_ok=True)
-    flat_csv = output_dir / f"{model.artifact_name}_functionality_similarity.csv"
-    functionality_df.to_csv(flat_csv, index=False)
-    return _latest_functionality_results(model) or flat_csv
-
 
 def _ablation_sources(
     models: list[ModelSpec],
@@ -314,8 +240,10 @@ def _ablation_sources(
             results_path = _latest_functionality_results(model)
             if results_path is None:
                 if not generate_missing:
-                    print(f"Skipping {model.label}: no functionality_similarity results found.")
-                    continue
+                    raise FileNotFoundError(
+                        f"No release-model functionality scores for {model.label} ({model.model_id}). "
+                        "Run with --generate-missing to score cached cells with the Hub model."
+                    )
                 results_path = _generate_functionality_results(
                     model,
                     force_regenerate=force_regenerate,
@@ -423,7 +351,7 @@ def _parse_args() -> argparse.Namespace:
         "--force-regenerate",
         action="store_true",
         default=FORCE_REGENERATE,
-        help="Force regeneration of embeddings when --generate-missing is used.",
+        help="Regenerate functionality text embeddings and scores; cached cell embeddings remain required.",
     )
     return parser.parse_args()
 

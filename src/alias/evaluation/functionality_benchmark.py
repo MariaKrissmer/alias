@@ -1014,3 +1014,202 @@ def run_functionality_benchmark(config: FunctionalityBenchmarkConfig) -> dict[st
         "summary_csv": summary_csv,
         "metadata_json": metadata_json,
     }
+
+
+def prepare_alias_functionality_embeddings(
+    *,
+    dataset_id: str,
+    model_label: str,
+    model_id: str,
+    descriptions: list[str],
+    embedding_root: Path,
+    annotation_column: str,
+    max_cells: int,
+    batch_size: int,
+    force_regenerate: bool = False,
+    require_text_cache: bool = False,
+) -> tuple[dict, Path, Path]:
+    from alias import evaluation as ev
+    import numpy as np
+    import pandas as pd
+
+    from alias.evaluation.embedding import (
+        find_reusable_embedding_run,
+        load_embedding_model,
+        load_embedding_run_metadata,
+        resolve_artifact_root,
+    )
+    from alias.util.artifacts import create_run_directory, save_embedding_frame, write_metadata
+
+    embedding_config = ev.GenEmbeddingsConfig(
+        embedding_models=[model_id],
+        model_type="sentence_transformer",
+        batch_size=batch_size,
+        output_dir=str(embedding_root / model_label),
+        max_cells=max_cells,
+        annotation_column=annotation_column,
+    )
+    cached_run = find_reusable_embedding_run(
+        resolve_artifact_root(embedding_config.output_dir, "embeddings"),
+        "scrna",
+        model_id,
+        embedding_config,
+    )
+    if cached_run is None:
+        raise FileNotFoundError(
+            f"No matching {model_id} cell embedding cache for {model_label}. "
+            "Run the annotation evaluation first; functionality will not re-encode cells."
+        )
+    dataset_meta = load_embedding_run_metadata(cached_run)
+    cell_path = Path(dataset_meta["df_cells"]["path"])
+    if not 0 < dataset_meta["df_cells"]["n_samples"] <= max_cells:
+        raise ValueError(f"Unexpected cached cell count in {cell_path}")
+
+    text_root = embedding_root / "functionality_text" / model_label
+    text_run_dir = None
+    for candidate in sorted(text_root.glob("*"), reverse=True):
+        metadata_path = candidate / "metadata.json"
+        if force_regenerate or not metadata_path.exists():
+            continue
+        with metadata_path.open("r", encoding="utf-8") as handle:
+            metadata = json.load(handle)
+        if metadata.get("model_id") == model_id and metadata.get("descriptions") == descriptions:
+            text_run_dir = candidate
+            break
+    if text_run_dir is None:
+        if require_text_cache:
+            raise FileNotFoundError(
+                f"No cached functionality text embeddings for {model_label} ({model_id}) "
+                f"with the requested descriptions: {descriptions}"
+            )
+        print(f"Encoding {len(descriptions)} functionality texts with {model_id}")
+        st_model = load_embedding_model(model_id)
+        text_embeddings = np.asarray(
+            st_model.encode(
+                descriptions,
+                batch_size=batch_size,
+                show_progress_bar=False,
+            )
+        )
+        text_run_dir = create_run_directory(
+            root_dir=embedding_root / "functionality_text",
+            category="",
+            dataset_name=model_label,
+        )
+        text_frame = pd.DataFrame(text_embeddings)
+        text_frame.index = text_frame.index.astype(str)
+        text_meta = save_embedding_frame(
+            text_run_dir,
+            "df_additional",
+            text_frame,
+            annotation_map=dict(enumerate(descriptions)),
+            annotation_file_name="df_additional_input_mapping.json",
+        )
+        text_meta["run_dir"] = str(text_run_dir)
+        write_metadata(
+            text_run_dir,
+            {
+                "dataset_id": dataset_id,
+                "model_id": model_id,
+                "descriptions": descriptions,
+                "source_cell_embedding_run": str(cached_run),
+                "artifact": text_meta,
+            },
+        )
+    else:
+        with (text_run_dir / "metadata.json").open("r", encoding="utf-8") as handle:
+            text_meta = json.load(handle)["artifact"]
+
+    dataset_meta["df_additional"] = text_meta
+    embeddings_dict = {model_label: {"scrna": dataset_meta}}
+    print(f"Reusing {model_label} cell embeddings from {cell_path}")
+    return embeddings_dict, cached_run, text_run_dir
+
+
+def attach_cached_functionality_umap(embeddings_dict: dict, model_label: str) -> bool:
+    """Use UMAP coordinates already calculated for the same cell embedding run."""
+    cell_meta = embeddings_dict[model_label]["scrna"]["df_cells"]
+    cell_run = Path(cell_meta["run_dir"])
+    candidates = sorted(
+        cell_run.glob("umap/celltype_label_plots/*/df_cells_umap.parquet"),
+        reverse=True,
+    )
+    if not candidates:
+        return False
+    cell_meta["umap"] = {"path": str(candidates[0]), "n_points": cell_meta["n_samples"]}
+    return True
+
+
+def generate_alias_functionality_results(
+    *,
+    dataset_id: str,
+    model_label: str,
+    model_id: str,
+    descriptions: list[str],
+    true_label_map: dict[str, str],
+    embedding_root: Path,
+    evaluation_root: Path,
+    results_root: Path,
+    annotation_column: str,
+    max_cells: int,
+    batch_size: int,
+    force_regenerate: bool = False,
+) -> Path:
+    from alias import evaluation as ev
+    from alias.util.artifacts import create_run_directory, write_metadata
+
+    embeddings_dict, cached_run, text_run_dir = prepare_alias_functionality_embeddings(
+        dataset_id=dataset_id,
+        model_label=model_label,
+        model_id=model_id,
+        descriptions=descriptions,
+        embedding_root=embedding_root,
+        annotation_column=annotation_column,
+        max_cells=max_cells,
+        batch_size=batch_size,
+        force_regenerate=force_regenerate,
+    )
+    dataset_meta = embeddings_dict[model_label]["scrna"]
+    cell_path = Path(dataset_meta["df_cells"]["path"])
+    text_meta = dataset_meta["df_additional"]
+    embeddings_dict = ev.umap_plots(
+        embeddings_dict=embeddings_dict,
+        annotation_column=annotation_column,
+        output_dir=str(evaluation_root),
+        evaluation_config=ev.EvaluationConfig(
+            n_neighbors=15,
+            min_dist=0.5,
+            random_state=21,
+            n_components=25,
+        ),
+    )
+    functionality_df = ev.functionality_similarity(
+        embeddings_dict=embeddings_dict,
+        annotation_column=annotation_column,
+        config=ev.FunctionalitySimilarityConfig(
+            similarity_metric="cosine",
+            bins=60,
+            output_dir=evaluation_root,
+            plot=True,
+            true_label_map=true_label_map,
+        ),
+    )
+    run_dir = create_run_directory(root_dir=results_root, category="", dataset_name=model_label)
+    results_path = run_dir / "results_df.csv"
+    functionality_df.to_csv(results_path, index=False)
+    write_metadata(
+        run_dir,
+        {
+            "dataset_id": dataset_id,
+            "model_label": model_label,
+            "model_id": model_id,
+            "source_cell_embedding_run": str(cached_run),
+            "source_cell_embedding_path": str(cell_path),
+            "source_text_embedding_run": str(text_run_dir),
+            "source_text_embedding_path": text_meta["path"],
+            "n_cells": dataset_meta["df_cells"]["n_samples"],
+            "descriptions": descriptions,
+            "results_path": str(results_path),
+        },
+    )
+    return results_path

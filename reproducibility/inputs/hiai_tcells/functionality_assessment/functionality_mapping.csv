@@ -1,0 +1,15 @@
+Definition,Cell Type
+Recognize stress ligands not presented on classical MHC molecules.,gamma delta T
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",gamma delta T
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,Treg
+Stably express FOXP3 to maintain suppressive identity.,Treg
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,MAIT
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,MAIT
+Retain long-term survival and recall potential.,Memory CD8 T cell
+Rapidly kill target cells upon antigen re-exposure.,Memory CD8 T cell
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,Memory CD4 T cell
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,Memory CD4 T cell
+Serve as unprimed precursors to all helper T cell subsets.,Naive CD4 T cell
+Act as a pool for generating novel responses to previously unseen antigens.,Naive CD8 T cell
+Undergo robust IL-2-driven expansion during acute response.,Proliferating T cell
+Increased metabolic activity and cell cycle progression.,Proliferating T cell

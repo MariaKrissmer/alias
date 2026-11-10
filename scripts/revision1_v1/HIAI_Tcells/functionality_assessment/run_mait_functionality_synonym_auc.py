@@ -52,12 +52,20 @@ from util.publication_plotting import (  # noqa: E402
 
 
 DATASET_ID = "S2_heldout_donor_semantic_200k"
-DATASET_DIR = PROJECT_ROOT / "out" / "data" / "revision1_v1" / "HIAI_Tcells" / DATASET_ID
-SCRNA_TEST_PATH = DATASET_DIR / "datasets" / "scrna_test"
-SCRNA_HF_DATASET = f"mariakrissmer/scrna_HIAI_Tcells_{DATASET_ID}"
-EVALUATION_ROOT = DATASET_DIR / "evaluation_plots"
-OUTPUT_DIR = DATASET_DIR / "functionality_assessment" / "mait_description_synonym"
-EMBEDDING_ROOT = DATASET_DIR / "embeddings" / "mait_description_synonym"
+REVISION_DATA_ROOT = Path(
+    os.environ.get("ALIAS_REVISION_DATA_ROOT", PROJECT_ROOT / "out" / "data" / "revision1_v1")
+)
+DATASET_DIR = REVISION_DATA_ROOT / "HIAI_Tcells" / DATASET_ID
+EVALUATION_ROOT = Path(
+    os.environ.get("HIAI_TCELLS_FUNCTIONALITY_EVALUATION_ROOT", DATASET_DIR / "evaluation_plots")
+)
+OUTPUT_DIR = Path(
+    os.environ.get(
+        "HIAI_TCELLS_FUNCTIONALITY_MAIT_OUTPUT_DIR",
+        DATASET_DIR / "functionality_assessment" / "mait_description_synonym",
+    )
+)
+EMBEDDING_ROOT = DATASET_DIR / "embeddings"
 ANNOTATION_COLUMN = "AIFI_L2"
 TARGET_CELL_TYPE = "MAIT"
 MAX_CELLS = int(os.environ.get("MAIT_FUNCTIONALITY_SYNONYM_MAX_CELLS", "20000"))
@@ -78,10 +86,7 @@ ABLATION_MODELS = [
     ModelSpec(
         label="MB",
         artifact_name="MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15_epoch_15_ncbi",
-        model_id=PROJECT_ROOT
-        / "models"
-        / "MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15_all"
-        / "epoch_15_ncbi",
+        model_id="mariakrissmer/ALIAS-MA",
         fallback_artifact_names=(
             "MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15",
             "MB_HIAI_Tcells_S2_N1_200k_lr5e5",
@@ -91,29 +96,29 @@ ABLATION_MODELS = [
     ModelSpec(
         label="MJ",
         artifact_name="MJ_HIAI_Tcells_S2_N3_200k_lr5e5",
-        model_id="mariakrissmer/MJ_HIAI_Tcells_S2_N3_200k_lr5e5",
+        model_id="mariakrissmer/ALIAS-MA-star",
     ),
     ModelSpec(
         label="MG",
         artifact_name="MG_HIAI_Tcells_S2_200k_lr5e5_all",
-        model_id=PROJECT_ROOT / "models" / "MG_HIAI_Tcells_S2_200k_lr5e5_all",
+        model_id="mariakrissmer/ALIAS-MB",
         fallback_artifact_names=("MG_HIAI_Tcells_S2_200k_lr5e5", "MG_HIAI_Tcells_S2_200k"),
     ),
     ModelSpec(
         label="MH",
         artifact_name="MH_HIAI_Tcells_S5_200k_lr5e5",
-        model_id="mariakrissmer/MH_HIAI_Tcells_S5_200k_lr5e5",
+        model_id="mariakrissmer/ALIAS-MC-star",
     ),
     ModelSpec(
         label="MF",
         artifact_name="MF_HIAI_Tcells_S3_200k_lr5e5_all",
-        model_id=PROJECT_ROOT / "models" / "MF_HIAI_Tcells_S3_200k_lr5e5_all",
+        model_id="mariakrissmer/ALIAS-MC",
         fallback_artifact_names=("MF_HIAI_Tcells_S3_200k_lr5e5", "MF_HIAI_Tcells_S3_200k"),
     ),
     ModelSpec(
         label="MI",
         artifact_name="MI_HIAI_Tcells_N1_200k_lr5e5_all",
-        model_id=PROJECT_ROOT / "models" / "MI_HIAI_Tcells_N1_200k_lr5e5_all",
+        model_id="mariakrissmer/ALIAS-MD",
         fallback_artifact_names=("MI_HIAI_Tcells_N1_200k_lr5e5", "MI_HIAI_Tcells_N1_200k"),
     ),
     ModelSpec(
@@ -250,53 +255,6 @@ def _select_models(model_names: list[str] | None = None) -> list[ModelSpec]:
     return [selected_by_label[label] for label in selected_order if label in selected_by_label]
 
 
-def _load_scrna_test():
-    from datasets import load_from_disk
-    from alias.util.load_hf_model import load_hf_dataset
-
-    if SCRNA_TEST_PATH.exists():
-        try:
-            return load_from_disk(str(SCRNA_TEST_PATH))
-        except Exception as error:
-            print(
-                f"Could not load local scrna_test from {SCRNA_TEST_PATH}: "
-                f"{type(error).__name__}: {error}"
-            )
-            print(f"Falling back to Hugging Face dataset: {SCRNA_HF_DATASET}")
-
-    dataset = load_hf_dataset(SCRNA_HF_DATASET)
-    if isinstance(dataset, dict):
-        for split_name in ("test", "scrna_test"):
-            if split_name in dataset:
-                return dataset[split_name]
-        raise KeyError(
-            f"Could not find a test split in {SCRNA_HF_DATASET}. "
-            f"Available splits: {sorted(dataset.keys())}"
-        )
-    return dataset
-
-
-def _model_source(model_id: str | Path) -> str | Path:
-    model_path = Path(model_id)
-    if model_path.exists():
-        return model_path
-
-    local_path = PROJECT_ROOT / "models" / str(model_id)
-    if local_path.exists():
-        return local_path
-
-    return str(model_id)
-
-
-def _rekey_embeddings_dict(embeddings_dict: dict, model_id: str | Path, artifact_name: str) -> dict:
-    from alias.evaluation.embedding import clean_model_name
-
-    source_key = clean_model_name(str(model_id))
-    if source_key not in embeddings_dict:
-        return embeddings_dict
-    return {artifact_name: embeddings_dict[source_key]}
-
-
 def _evaluate_model(
     model: ModelSpec,
     variants: pd.DataFrame,
@@ -304,40 +262,35 @@ def _evaluate_model(
     force_regenerate: bool = False,
 ) -> pd.DataFrame:
     from alias import evaluation as ev
+    from alias.evaluation.functionality_benchmark import (
+        attach_cached_functionality_umap,
+        prepare_alias_functionality_embeddings,
+    )
 
     description_texts = variants["description_text"].astype(str).tolist()
-    model_source = _model_source(model.model_id)
-    print(f"Evaluating MAIT functionality descriptions for {model.label}: {model_source}")
-    scrna_test = _load_scrna_test()
-    embeddings_dict = ev.generate_embeddings(
-        evaluation_dict={"scrna": {"test": scrna_test}},
-        embedding_config=ev.GenEmbeddingsConfig(
-            embedding_models=[str(model_source)],
-            model_type="sentence_transformer",
-            batch_size=BATCH_SIZE,
-            output_dir=str(EMBEDDING_ROOT / model.artifact_name),
-            max_cells=MAX_CELLS,
-            annotation_column=ANNOTATION_COLUMN,
-            additional_data=description_texts,
-            force_regenerate=force_regenerate,
-        ),
-    )
-    embeddings_dict = _rekey_embeddings_dict(
-        embeddings_dict,
-        model_id=model_source,
-        artifact_name=model.artifact_name,
-    )
-    embeddings_dict = ev.umap_plots(
-        embeddings_dict=embeddings_dict,
+    embeddings_dict, cell_run, text_run = prepare_alias_functionality_embeddings(
+        dataset_id=DATASET_ID,
+        model_label=model.label,
+        model_id=str(model.model_id),
+        descriptions=description_texts,
+        embedding_root=EMBEDDING_ROOT,
         annotation_column=ANNOTATION_COLUMN,
-        output_dir=str(EVALUATION_ROOT),
-        evaluation_config=ev.EvaluationConfig(
-            n_neighbors=15,
-            min_dist=0.5,
-            random_state=21,
-            n_components=25,
-        ),
+        max_cells=MAX_CELLS,
+        batch_size=BATCH_SIZE,
+        force_regenerate=force_regenerate,
     )
+    if not attach_cached_functionality_umap(embeddings_dict, model.label):
+        embeddings_dict = ev.umap_plots(
+            embeddings_dict=embeddings_dict,
+            annotation_column=ANNOTATION_COLUMN,
+            output_dir=str(EVALUATION_ROOT),
+            evaluation_config=ev.EvaluationConfig(
+                n_neighbors=15,
+                min_dist=0.5,
+                random_state=21,
+                n_components=25,
+            ),
+        )
     functionality_df = ev.functionality_similarity(
         embeddings_dict=embeddings_dict,
         annotation_column=ANNOTATION_COLUMN,
@@ -369,10 +322,16 @@ def _evaluate_model(
     model_df["target_cell_type"] = TARGET_CELL_TYPE
     model_df["model"] = model.label
     model_df["artifact_name"] = model.artifact_name
+    model_df["model_id"] = str(model.model_id)
+    model_df["source_cell_embedding_run"] = str(cell_run)
+    model_df["source_text_embedding_run"] = str(text_run)
     return model_df[
         [
             "model",
             "artifact_name",
+            "model_id",
+            "source_cell_embedding_run",
+            "source_text_embedding_run",
             "description_id",
             "variant_type",
             "source_description",
@@ -569,7 +528,7 @@ def _parse_args() -> argparse.Namespace:
         "--force-regenerate",
         action="store_true",
         default=FORCE_REGENERATE,
-        help="Force regeneration of embeddings for the MAIT description prompt set.",
+        help="Regenerate MAIT description text embeddings; cached cell embeddings remain required.",
     )
     parser.add_argument(
         "--timestamp",

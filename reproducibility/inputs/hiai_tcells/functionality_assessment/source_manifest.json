@@ -1,0 +1,13 @@
+{
+  "dataset_id": "S2_heldout_donor_semantic_200k",
+  "files": {
+    "reproducibility/inputs/hiai_tcells/functionality_assessment/baselines/cell_type_pairwise_wins_llama3_3_70B.csv": "cce320c78845c724b8d49265ce508dd68632bbdf359407bd33aa48d06571b460",
+    "reproducibility/inputs/hiai_tcells/functionality_assessment/baselines/cell_type_pairwise_wins_qwen3_235B.csv": "e49f31e74a5b322b24b05a1d445370fef01ddd63d7a18b21a960c89ab0eb7e4d",
+    "reproducibility/inputs/hiai_tcells/functionality_assessment/baselines/cellwhisperer_cell_results.csv": "d6d2e6764d78ff6f9864c0673eacffb5f3329ebe838f06b005e1328f47a473b0",
+    "reproducibility/inputs/hiai_tcells/functionality_assessment/functionality_mapping.csv": "d0eb3b9adc3460825e7c295c40365b7198b020a936aeda74aaec29985748a636",
+    "reproducibility/tools/hiai_tcells/functionality_assessment/HIAI_cellwhisperer_historical.py": "0b53b40326cfe6fe9202f5c5e7c16ff9383641cf2fbbd2034509d78fe84a8d99",
+    "reproducibility/tools/hiai_tcells/functionality_assessment/llm_benchmarking_historical.py": "43b54fd3ab1efcd5a03a156aeeeb78e1cb6f2a6a169e4d12dfbf32d0c38688c1"
+  },
+  "source_code_note": "Historical scripts are preserved for reference. Their hardcoded old dataset paths and the LLM prompt wording do not prove exact provenance for the revision1 baseline CSVs. The copied LLM script reads OPENROUTER_API_KEY instead of embedding a token.",
+  "source_directory": "out/data/revision1_v1/HIAI_Tcells/S2_heldout_donor_semantic_200k/functionality_assessment"
+}

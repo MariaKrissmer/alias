@@ -1,0 +1,141 @@
+functionality,cell_type,mean_auc
+Recognize stress ligands not presented on classical MHC molecules.,CD8aa,0.5572792403172668
+Recognize stress ligands not presented on classical MHC molecules.,DN T cell,0.6375311779905638
+Recognize stress ligands not presented on classical MHC molecules.,MAIT,0.5475998611843228
+Recognize stress ligands not presented on classical MHC molecules.,Memory CD4 T cell,0.6080078131722348
+Recognize stress ligands not presented on classical MHC molecules.,Memory CD8 T cell,0.7060488511151715
+Recognize stress ligands not presented on classical MHC molecules.,Naive CD4 T cell,0.2778785285043652
+Recognize stress ligands not presented on classical MHC molecules.,Naive CD8 T cell,0.3742621342864823
+Recognize stress ligands not presented on classical MHC molecules.,Proliferating T cell,0.7867018546261134
+Recognize stress ligands not presented on classical MHC molecules.,Treg,0.5229288178542387
+Recognize stress ligands not presented on classical MHC molecules.,gamma delta T,0.6812436806052866
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",CD8aa,0.6465128444929632
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",DN T cell,0.4541497916376849
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",MAIT,0.7713266005186998
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",Memory CD4 T cell,0.5531295959915087
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",Memory CD8 T cell,0.7258200637784777
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",Naive CD4 T cell,0.2684200555834508
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",Naive CD8 T cell,0.4007756020473259
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",Proliferating T cell,0.5887725053904547
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",Treg,0.3430111367475985
+"Recognize lipid, phosphoantigens, and stress ligands via non-conventional pathways.",gamma delta T,0.812619319022049
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,CD8aa,0.33078750702379
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,DN T cell,0.4061929934617191
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,MAIT,0.3665143571112712
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,Memory CD4 T cell,0.6739289340372601
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,Memory CD8 T cell,0.238610636919696
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,Naive CD4 T cell,0.548787253024124
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,Naive CD8 T cell,0.5416434408658466
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,Proliferating T cell,0.4490065691933092
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,Treg,0.6490424379543903
+Produce immunosuppressive cytokines such as IL-10 and TGF-β.,gamma delta T,0.1955113142610277
+Stably express FOXP3 to maintain suppressive identity.,CD8aa,0.3413378465766333
+Stably express FOXP3 to maintain suppressive identity.,DN T cell,0.3973409456188396
+Stably express FOXP3 to maintain suppressive identity.,MAIT,0.2779769766585733
+Stably express FOXP3 to maintain suppressive identity.,Memory CD4 T cell,0.6362776393917716
+Stably express FOXP3 to maintain suppressive identity.,Memory CD8 T cell,0.1603942192674696
+Stably express FOXP3 to maintain suppressive identity.,Naive CD4 T cell,0.6298213029346784
+Stably express FOXP3 to maintain suppressive identity.,Naive CD8 T cell,0.585689834836156
+Stably express FOXP3 to maintain suppressive identity.,Proliferating T cell,0.4149017330747463
+Stably express FOXP3 to maintain suppressive identity.,Treg,0.670208585108391
+Stably express FOXP3 to maintain suppressive identity.,gamma delta T,0.1673090423184947
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,CD8aa,0.4197684557934361
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,DN T cell,0.3638572015222662
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,MAIT,0.5063243750863543
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,Memory CD4 T cell,0.6295243660291099
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,Memory CD8 T cell,0.4640825882282908
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,Naive CD4 T cell,0.4154593847573036
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,Naive CD8 T cell,0.4640662087913508
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,Proliferating T cell,0.4596293457517022
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,Treg,0.5110638350071438
+Recognize bacterial-derived riboflavin metabolites presented on MR1.,gamma delta T,0.525092479249416
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,CD8aa,0.7925813011540284
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,DN T cell,0.7599936202388518
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,MAIT,0.7638847294845195
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,Memory CD4 T cell,0.56887714784015
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,Memory CD8 T cell,0.7129308034121663
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,Naive CD4 T cell,0.2249674976823996
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,Naive CD8 T cell,0.4257341430472532
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,Proliferating T cell,0.9130789658069036
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,Treg,0.6194547403506465
+Bridge innate and adaptive immunity with semi-invariant TCR and rapid cytokine output.,gamma delta T,0.6961562060844
+Rapidly kill target cells upon antigen re-exposure.,CD8aa,0.6520452798997154
+Rapidly kill target cells upon antigen re-exposure.,DN T cell,0.6862652833696465
+Rapidly kill target cells upon antigen re-exposure.,MAIT,0.5797374136384174
+Rapidly kill target cells upon antigen re-exposure.,Memory CD4 T cell,0.494590227824353
+Rapidly kill target cells upon antigen re-exposure.,Memory CD8 T cell,0.7765274193213634
+Rapidly kill target cells upon antigen re-exposure.,Naive CD4 T cell,0.2694847586653858
+Rapidly kill target cells upon antigen re-exposure.,Naive CD8 T cell,0.4658051470311054
+Rapidly kill target cells upon antigen re-exposure.,Proliferating T cell,0.8530798367959989
+Rapidly kill target cells upon antigen re-exposure.,Treg,0.6017497146245684
+Rapidly kill target cells upon antigen re-exposure.,gamma delta T,0.725684435318891
+Retain long-term survival and recall potential.,CD8aa,0.6337713409171372
+Retain long-term survival and recall potential.,DN T cell,0.3579890302468763
+Retain long-term survival and recall potential.,MAIT,0.7098790518683439
+Retain long-term survival and recall potential.,Memory CD4 T cell,0.4248303088216446
+Retain long-term survival and recall potential.,Memory CD8 T cell,0.8184181642719603
+Retain long-term survival and recall potential.,Naive CD4 T cell,0.2899229107537785
+Retain long-term survival and recall potential.,Naive CD8 T cell,0.5469648147798337
+Retain long-term survival and recall potential.,Proliferating T cell,0.2134464844944585
+Retain long-term survival and recall potential.,Treg,0.3575639305062752
+Retain long-term survival and recall potential.,gamma delta T,0.7527388995529014
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,CD8aa,0.4365741668243968
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,DN T cell,0.5851457311316834
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,MAIT,0.4179778687644141
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,Memory CD4 T cell,0.7689496875143569
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,Memory CD8 T cell,0.2918066517899548
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,Naive CD4 T cell,0.4422412349006247
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,Naive CD8 T cell,0.4735228108990744
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,Proliferating T cell,0.3797582327824811
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,Treg,0.6105543041616148
+Effector memory subset lacks CCR7 and homes to inflamed tissues.,gamma delta T,0.2488672946724013
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,CD8aa,0.4746786756811818
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,DN T cell,0.5777585785755356
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,MAIT,0.498891804165455
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,Memory CD4 T cell,0.7358483261839814
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,Memory CD8 T cell,0.3008485407082383
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,Naive CD4 T cell,0.430601119223114
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,Naive CD8 T cell,0.508960655039625
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,Proliferating T cell,0.5421623949490374
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,Treg,0.6144748087468505
+Central memory subset homes to lymphoid tissues and proliferates upon recall.,gamma delta T,0.2704977885679586
+Serve as unprimed precursors to all helper T cell subsets.,CD8aa,0.2448343192713633
+Serve as unprimed precursors to all helper T cell subsets.,DN T cell,0.3000872693421257
+Serve as unprimed precursors to all helper T cell subsets.,MAIT,0.2320874847318024
+Serve as unprimed precursors to all helper T cell subsets.,Memory CD4 T cell,0.4408747506673611
+Serve as unprimed precursors to all helper T cell subsets.,Memory CD8 T cell,0.0918895296304454
+Serve as unprimed precursors to all helper T cell subsets.,Naive CD4 T cell,0.8791268310708332
+Serve as unprimed precursors to all helper T cell subsets.,Naive CD8 T cell,0.6142067691078201
+Serve as unprimed precursors to all helper T cell subsets.,Proliferating T cell,0.1424177495964417
+Serve as unprimed precursors to all helper T cell subsets.,Treg,0.4812406012640959
+Serve as unprimed precursors to all helper T cell subsets.,gamma delta T,0.1657206655489763
+Act as a pool for generating novel responses to previously unseen antigens.,CD8aa,0.6433982978931033
+Act as a pool for generating novel responses to previously unseen antigens.,DN T cell,0.7303098745674214
+Act as a pool for generating novel responses to previously unseen antigens.,MAIT,0.6754940000941022
+Act as a pool for generating novel responses to previously unseen antigens.,Memory CD4 T cell,0.4846499521257202
+Act as a pool for generating novel responses to previously unseen antigens.,Memory CD8 T cell,0.6567045039915642
+Act as a pool for generating novel responses to previously unseen antigens.,Naive CD4 T cell,0.3300023386945384
+Act as a pool for generating novel responses to previously unseen antigens.,Naive CD8 T cell,0.5153508266191174
+Act as a pool for generating novel responses to previously unseen antigens.,Proliferating T cell,0.8160128441858574
+Act as a pool for generating novel responses to previously unseen antigens.,Treg,0.5402298289758887
+Act as a pool for generating novel responses to previously unseen antigens.,gamma delta T,0.6917846795718064
+Undergo robust IL-2-driven expansion during acute response.,CD8aa,0.2723249581731733
+Undergo robust IL-2-driven expansion during acute response.,DN T cell,0.4506890038640466
+Undergo robust IL-2-driven expansion during acute response.,MAIT,0.2355357492849161
+Undergo robust IL-2-driven expansion during acute response.,Memory CD4 T cell,0.5600413902390333
+Undergo robust IL-2-driven expansion during acute response.,Memory CD8 T cell,0.1574574215271839
+Undergo robust IL-2-driven expansion during acute response.,Naive CD4 T cell,0.7144203661789075
+Undergo robust IL-2-driven expansion during acute response.,Naive CD8 T cell,0.553105176468984
+Undergo robust IL-2-driven expansion during acute response.,Proliferating T cell,0.4689345674281047
+Undergo robust IL-2-driven expansion during acute response.,Treg,0.7203850910700845
+Undergo robust IL-2-driven expansion during acute response.,gamma delta T,0.1726536903713145
+Increased metabolic activity and cell cycle progression.,CD8aa,0.4102090650552829
+Increased metabolic activity and cell cycle progression.,DN T cell,0.4603703967947367
+Increased metabolic activity and cell cycle progression.,MAIT,0.5435462654078131
+Increased metabolic activity and cell cycle progression.,Memory CD4 T cell,0.7655445174354947
+Increased metabolic activity and cell cycle progression.,Memory CD8 T cell,0.4636315952989347
+Increased metabolic activity and cell cycle progression.,Naive CD4 T cell,0.3330951989440032
+Increased metabolic activity and cell cycle progression.,Naive CD8 T cell,0.379458438073005
+Increased metabolic activity and cell cycle progression.,Proliferating T cell,0.75847900142068
+Increased metabolic activity and cell cycle progression.,Treg,0.5952542984562926
+Increased metabolic activity and cell cycle progression.,gamma delta T,0.3847342136690632
