@@ -17,6 +17,7 @@ green = get_tab20c_group(8)
 slate = get_tab20c_group(12)
 soft_reds = ['#a63737', '#c35252', '#d87474', '#eb9d9d']
 dark_red, light_red = soft_reds[0], soft_reds[-1]
+LAMANNO_HEATMAP_GRID_COLOR = "#d9d9d9"
 
 # Exported named color groups
 COLOR_GROUPS = {
@@ -113,10 +114,28 @@ PUBLICATION_ABLATION_MODEL_PALETTE = {
     for model, value in PUBLICATION_ABLATION_BLUE_VALUES.items()
 }
 
+SCIB_SCORE_COLORS = {
+    "Bio conservation": "#1f77b4",
+    "Batch correction": "#7f7f7f",
+    "Total": "#000000",
+}
+SCIB_BENCHMARK_COLORS = {
+    "PCA_expression": "#d9d9d9",
+    "PCA_rank_weighted": "#bdbdbd",
+    "PCA_one_hot": "#969696",
+    "scVI_census_pretrained": "#c2a5cf",
+    "scVI_census_dataset_adapted": "#9970ab",
+    "scGPT": "#54278f",
+    "ML": slate[0],
+}
+SCIB_TABLE_HEADER_COLOR = "#f2f2f2"
+
 PBMC3K_CS_LENGTH_ROPU = [
     mcolors.to_hex(color)
     for color in sns.color_palette("RdPu", n_colors=5)
 ]
+PBMC3K_SCATTER_EDGE_COLOR = "#ffffff"
+PBMC3K_CELLTYPE_POINT_COLOR = "#404040"
 
 
 # Step 1: Get all 20 tab20 colors

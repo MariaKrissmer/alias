@@ -77,3 +77,4 @@ notebooks/data/
 notebooks/embeddings/
 
 .matplotlib/
+*.sh

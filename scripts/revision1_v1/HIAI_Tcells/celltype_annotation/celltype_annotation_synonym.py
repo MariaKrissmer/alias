@@ -68,6 +68,9 @@ REVISION_DATA_ROOT = Path(
     os.environ.get("ALIAS_REVISION_DATA_ROOT", PROJECT_ROOT / "out" / "data" / "revision1_v1")
 )
 DATASET_DIR = REVISION_DATA_ROOT / "HIAI_Tcells" / DATASET_ID
+EMBEDDING_ROOT = Path(
+    os.environ.get("HIAI_TCELLS_EMBEDDING_ROOT", DATASET_DIR / "embeddings")
+)
 SCRNA_TEST_PATH = DATASET_DIR / "datasets" / "scrna_test"
 SCRNA_HF_DATASET = f"mariakrissmer/scrna_HIAI_Tcells_{DATASET_ID}"
 OUTPUT_DIR = Path(
@@ -209,13 +212,6 @@ COMPARISON_MODELS = [
         "name": "MH",
         "kind": "sentence_transformer_similarity_synonyms",
         "model": "mariakrissmer/ALIAS-MC-star",
-        "batch_size": 256,
-        "max_cells": 20000,
-    },
-    {
-        "name": "ML",
-        "kind": "sentence_transformer_similarity_synonyms",
-        "model": _model_source("mariakrissmer/ML_HIAI_Tcells_S7_N1_200k_lr5e5"),
         "batch_size": 256,
         "max_cells": 20000,
     },
@@ -491,7 +487,7 @@ def _generate_or_reuse_synonym_embeddings(
         embedding_models=[str(model_config["model"])],
         model_type="sentence_transformer",
         batch_size=int(model_config.get("batch_size", 64)),
-        output_dir=str(DATASET_DIR / "embeddings"),
+        output_dir=str(EMBEDDING_ROOT),
         max_cells=int(model_config.get("max_cells", 5000)),
         annotation_column=ANNOTATION_COLUMN,
         additional_data=synonym_labels,
@@ -1398,6 +1394,42 @@ def _write_combined_outputs(summary_frames: list[pd.DataFrame]) -> None:
     combined = pd.concat(summary_frames, ignore_index=True)
     combined_path = OUTPUT_DIR / "model_comparison_metrics.csv"
     combined.to_csv(combined_path, index=False)
+
+
+def run_label_umaps(model_names: list[str]) -> None:
+    scrna_test = _load_scrna_test()
+    observed_labels = set(map(str, scrna_test[ANNOTATION_COLUMN]))
+    synonym_map = _load_synonym_map(observed_labels)
+    model_configs = _select_model_configs(COMPARISON_MODELS, model_names)
+
+    for model_config in model_configs:
+        embeddings_dict = _generate_or_reuse_synonym_embeddings(
+            model_config=model_config,
+            scrna_test=scrna_test,
+            synonym_map=synonym_map,
+        )
+        model_name = next(iter(embeddings_dict))
+        dataset_name = next(iter(embeddings_dict[model_name]))
+        figure_dir = (
+            PLOT_OUTPUT_DIR
+            / "example_synonym_umap_context"
+            / model_name
+            / dataset_name
+            / "celltype_label_plots"
+        )
+        if any(
+            (run_dir / "cells_with_celltype_labels.svg").exists()
+            and (run_dir / "cells_colored_by_annotation.svg").exists()
+            for run_dir in figure_dir.glob("*")
+        ):
+            print(f"Reusing existing cell type label UMAPs for {model_name}.")
+            continue
+        ev.umap_plots(
+            embeddings_dict=embeddings_dict,
+            annotation_column=ANNOTATION_COLUMN,
+            output_dir=str(PLOT_OUTPUT_DIR / "example_synonym_umap_context"),
+            evaluation_config=EXAMPLE_UMAP_CONFIG,
+        )
 
 
 def run(model_names: list[str] | None = None) -> pd.DataFrame:

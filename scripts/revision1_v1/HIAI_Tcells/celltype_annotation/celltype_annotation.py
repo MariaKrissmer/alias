@@ -41,6 +41,9 @@ REVISION_DATA_ROOT = Path(
     os.environ.get("ALIAS_REVISION_DATA_ROOT", PROJECT_ROOT / "out" / "data" / "revision1_v1")
 )
 DATASET_DIR = REVISION_DATA_ROOT / "HIAI_Tcells" / DATASET_ID
+EMBEDDING_ROOT = Path(
+    os.environ.get("HIAI_TCELLS_EMBEDDING_ROOT", DATASET_DIR / "embeddings")
+)
 ADATA_TEST_PATH = DATASET_DIR / "adata_test.h5ad"
 SCRNA_TEST_PATH = DATASET_DIR / "datasets" / "scrna_test"
 SCRNA_HF_DATASET = f"mariakrissmer/scrna_HIAI_Tcells_{DATASET_ID}"
@@ -288,7 +291,7 @@ def _run_similarity_model(model_config: dict) -> pd.DataFrame:
         embedding_models=[str(model_config["model"])],
         model_type="sentence_transformer",
         batch_size=int(model_config.get("batch_size", 64)),
-        output_dir=str(DATASET_DIR / "embeddings" / model_config["name"]),
+        output_dir=str(EMBEDDING_ROOT / model_config["name"]),
         max_cells=int(model_config.get("max_cells", 5000)),
         annotation_column=ANNOTATION_COLUMN,
         force_regenerate=FORCE_RERUN,

@@ -81,6 +81,11 @@ def _args() -> argparse.Namespace:
             "Defaults to MB."
         ),
     )
+    parser.add_argument(
+        "--label-umaps-only",
+        action="store_true",
+        help="Generate only the cell type label UMAPs for --models.",
+    )
     return parser.parse_args()
 
 
@@ -94,6 +99,12 @@ def main() -> None:
         os.environ["HIAI_TCELLS_SYNONYM_FORCE"] = "1"
     os.environ["HIAI_TCELLS_SYNONYM_LABEL_PLOTS"] = "1"
     os.environ["HIAI_TCELLS_SYNONYM_LABEL_MODELS"] = args.synonym_label_plot_models
+
+    if args.label_umaps_only:
+        import celltype_annotation_synonym
+
+        celltype_annotation_synonym.run_label_umaps(model_names=model_names)
+        return
 
     if not args.skip_normal:
         import celltype_annotation
