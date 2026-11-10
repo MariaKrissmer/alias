@@ -2,84 +2,66 @@ models:
   - label: MA
     canonical_id: MB
     model_id: MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15
-    source_checkpoint: models/MB_HIAI_Tcells_S2_N1_200k_lr5e5_e15_all/epoch_15_ncbi
-    model_weights_sha256: 55f40b425faf5adebd95d44e295f603a89a9c26f3ae21fe114812d2cf65d43c4
     dataset_ids: [S2_heldout_donor_semantic_200k, N1_ncbi_literature]
     description: HIAI donor-generalization ablation
     training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MB_S2_N1_200k_lr5e5.py
-    huggingface: publication-pending
+    huggingface: https://huggingface.co/mariakrissmer/ALIAS-MA
   - label: MA*
     canonical_id: MJ
     model_id: MJ_HIAI_Tcells_S2_N3_200k_lr5e5
-    source_checkpoint: models/MJ_HIAI_Tcells_S2_N3_200k_lr5e5_all/epoch_15_ncbi
-    model_weights_sha256: ef941dd15da4333df2de568158bcf8b18d7129f9f85b5f57b5c49c3129bfc2ee
     dataset_ids: [S2_heldout_donor_semantic_200k, N3_ncbi_literature_shuffled_labels]
     description: HIAI shuffled-literature control
     training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MJ_S2_N3_200k_lr5e5.py
-    huggingface: publication-pending
+    huggingface: https://huggingface.co/mariakrissmer/ALIAS-MA-star
   - label: MB
     canonical_id: MG
     model_id: MG_HIAI_Tcells_S2_200k_lr5e5
-    source_checkpoint: models/MG_HIAI_Tcells_S2_200k_lr5e5_all/checkpoint-56192
-    model_weights_sha256: 54edb5a865b3ae36bb1d6b1f734f648ce79653d9642f89b3259b02a5fabee968
     dataset_ids: [S2_heldout_donor_semantic_200k]
     description: HIAI metadata contribution
     training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MG_S2_200k_lr5e5.py
-    huggingface: publication-pending
+    huggingface: https://huggingface.co/mariakrissmer/ALIAS-MB
   - label: MC
     canonical_id: MF
     model_id: MF_HIAI_Tcells_S3_200k_lr5e5
-    source_checkpoint: models/MF_HIAI_Tcells_S3_200k_lr5e5_all/checkpoint-56248
-    model_weights_sha256: cc7f4eba646d9f8039e9f0209c7469fc034cdb7a7efda709aa30900e412d6940
     dataset_ids: [S3_heldout_donor_nonsemantic_200k]
     description: HIAI non-semantic ablation
     training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MF_S3_200k_lr5e5.py
-    huggingface: publication-pending
+    huggingface: https://huggingface.co/mariakrissmer/ALIAS-MC
   - label: MC*
     canonical_id: MH
     model_id: MH_HIAI_Tcells_S5_200k_lr5e5
-    source_checkpoint: models/MH_HIAI_Tcells_S5_200k_lr5e5_all/checkpoint-56144
-    model_weights_sha256: bf32d695e736ab260537065013992f27353ab435f33c6aa744688c27c04e4de7
     dataset_ids: [S5_heldout_donor_semantic_shuffled_labels_200k]
     description: HIAI shuffled-label control
     training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MH_S5_200k_lr5e5.py
-    huggingface: publication-pending
+    huggingface: https://huggingface.co/mariakrissmer/ALIAS-MC-star
   - label: MD
     canonical_id: MI
     model_id: MI_HIAI_Tcells_N1_200k_lr5e5
-    source_checkpoint: models/MI_HIAI_Tcells_N1_200k_lr5e5_all/checkpoint-11992
-    model_weights_sha256: a3bdc7397d01c71b55e12c974c44edaa41e7e29a79ff28fce6a4a361424f8035
     dataset_ids: [N1_ncbi_literature]
     description: HIAI literature-only model
     training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MI_N1_200k_lr5e5.py
-    huggingface: publication-pending
+    huggingface: https://huggingface.co/mariakrissmer/ALIAS-MD
   - label: ME
     canonical_id: MM
     model_id: MM_HIAI_Tcells_S2_N4_200k_lr5e5
-    source_checkpoint: models/MM_HIAI_Tcells_S2_N4_200k_lr5e5_all/epoch_9_ncbi
-    model_weights_sha256: c34df766d2cc35c6f086e95b66ff9f6a648dc0688358f1d42b1ec9edc45a32a8
     dataset_ids: [S2_heldout_donor_semantic_200k, N4_ncbi_literature_cmv]
     description: HIAI CMV-oriented literature model
     training_script: scripts/revision1_v1/HIAI_Tcells/train_models/train_MM_S2_N4_200k_lr5e5.py
-    huggingface: publication-pending
+    huggingface: https://huggingface.co/mariakrissmer/ALIAS-ME
   - label: MF
     canonical_id: MO
     model_id: MO_LaManno_S9_N5_lr5e5
-    source_checkpoint: models/MO_LaManno_S9_N5_lr5e5_all/epoch_11_ncbi
-    model_weights_sha256: fdc90f64af30cc2d87279b2f445b6fe1afd2c7c4b7c28616d1dbdd82f6e91522
     dataset_ids: [S9_heldout_sample_semantic, N5_ncbi_literature]
     description: LaManno held-out donor/sample generalization model
     training_script: scripts/revision1_v1/LaManno/train_models/train_MO_S9_N5_lr5e5.py
-    huggingface: publication-pending
+    huggingface: https://huggingface.co/mariakrissmer/ALIAS-MF
   - label: MG
     canonical_id: MP
     model_id: MP_LaManno_S10_N5_lr5e5
-    source_checkpoint: models/MP_LaManno_S10_N5_lr5e5_all/epoch_9_ncbi
-    model_weights_sha256: 7dd4e22b84f1c25bc0a1f2e468b02c27c28727b9ba10b4d129804b2fd245544d
     dataset_ids: [S10_heldout_timepoint_semantic, N5_ncbi_literature]
     description: LaManno held-out timepoint generalization model
     training_script: scripts/revision1_v1/LaManno/train_models/train_MP_S10_N5_lr5e5.py
-    huggingface: publication-pending
+    huggingface: https://huggingface.co/mariakrissmer/ALIAS-MG
   - label: Base
     canonical_id: Base
     model_id: neuml/pubmedbert-base-embeddings

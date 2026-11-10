@@ -1,4 +1,4 @@
-# alias (Adding layers of information for the analysis of scRNA-seq data)
+# Adding layers of information to scRNA-seq data using pre-trained language models
 
 [![Tests](https://github.com/MariaKrissmer/alias/actions/workflows/test.yml/badge.svg)](https://github.com/MariaKrissmer/alias/actions/workflows/test.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/downloads/)
@@ -43,7 +43,7 @@ Raw HIAI and LaManno data, generated datasets, model checkpoints, logs, credenti
 
 The tracked provenance files are under [`reproducibility/`](reproducibility/):
 
-- `manifests/model_registry.yaml` maps manuscript labels to canonical model IDs and records the selected model weight source and SHA-256 digest.
+- `manifests/model_registry.yaml` maps manuscript labels to canonical model IDs and public Hugging Face model repositories.
 - `manifests/dataset_registry.yaml` maps dataset IDs to generation scripts and metadata.
 - `manifests/query_manifest.csv` contains the NCBI query strings.
 - `manifests/pmid_manifest.csv` contains the PMIDs used by the literature workflows.
@@ -51,6 +51,8 @@ The tracked provenance files are under [`reproducibility/`](reproducibility/):
 - `manifests/split_manifest.json` contains the deterministic split indices and seeds.
 - `metadata/` contains sanitized dataset and model metadata without machine-specific paths.
 - `metadata/datasets/HIAI_Tcells/CL_raw_collection/` contains the raw Cell Ontology/scType term records used for the HIAI CL-infused literature cell sentences. The LaManno `N5` literature dataset was generated without CL term infusion, so no LaManno CL term summary is included.
+
+A full [Figure 2 reproducibility notebook](notebooks/figure2.ipynb) is available as a worked example for the computational panels (A, C, D, and E), using the test data in `out/data/`.
 
 ## Selected HIAI workflows
 
@@ -90,6 +92,12 @@ uv run python scripts/revision1_v1/HIAI_Tcells/celltype_annotation/run_celltype_
   --models Base,MI,MF,MG,MB,MJ,MH
 ```
 
+The CMV functionality assessment is implemented in [`run_functionality_downstream_disease_comparison.py`](scripts/revision1_v1/HIAI_Tcells/functionality_assessment/run_functionality_downstream_disease_comparison.py). It evaluates the public `ALIAS-MA` and `ALIAS-ME` models on the S7 test data.
+
+### External embedding benchmarks for Figure 2E
+
+The scGPT embeddings were generated without fine-tuning using [`generate_scgpt_embeddings.py`](src/alias/evaluation/embedding_evaluation/generate_scgpt_embeddings.py). The scVI Census embeddings were generated with [`generate_scvi_census_embeddings.py`](src/alias/evaluation/embedding_evaluation/generate_scvi_census_embeddings.py) in pretrained and dataset-adapted modes. The adapted run was configured for 20 training epochs with early stopping. The three saved embedding files and their generation metadata are under `out/data/revision1_v1/HIAI_Tcells/S2_heldout_donor_semantic_200k/embeddings_evaluation/external_embeddings/`; available reference model files are under `out/models/`. Figure 2 uses the saved embeddings as benchmark inputs. The adapted scVI checkpoint was not retained, so its saved embedding file is the exact input for that comparison.
+
 ## Selected LaManno workflows
 
 The LaManno workflows reproduce the held-out donor/sample and held-out timepoint models. `N5` uses NCBI literature only; CL term summaries are not included for this dataset.
@@ -111,13 +119,27 @@ uv run python scripts/revision1_v1/LaManno/train_models/train_MP_S10_N5_lr5e5.py
 
 ### Evaluate models
 
+The LaManno evaluation scripts are [`run_lamanno_embedding_evaluation.py`](scripts/revision1_v1/LaManno/evaluation/run_lamanno_embedding_evaluation.py) for the S9 developmental analysis with `ALIAS-MF` and [`heldout_timepoint_eval.py`](scripts/revision1_v1/LaManno/evaluation/heldout_timepoint_eval.py) for the S10 held-out-timepoint analysis with `ALIAS-MG`.
+
+## PBMC3k sentence-length sensitivity analysis (Figure S1B)
+
+The supplementary PBMC3k analysis uses five cell sentence lengths (10, 20, 50, 100, 200) and three training seeds (73, 101, 202). To reproduce it in a fresh local directory:
+
 ```bash
-uv run python scripts/revision1_v1/LaManno/evaluation/run_lamanno_embedding_evaluation.py
+export PBMC3K_STUDY_ROOT="$PWD/out/data/revision1_v1/pbmc3k_reproduction"
+export PBMC3K_MODEL_ROOT="$PBMC3K_STUDY_ROOT/models"
+uv run --extra evaluation python scripts/revision1_v1/pbmc3k/run_cell_sentence_length_stability.py --stage generate
+uv run --extra evaluation python scripts/revision1_v1/pbmc3k/run_cell_sentence_length_stability.py --stage train
+uv run --extra evaluation python scripts/revision1_v1/pbmc3k/evaluate_cell_sentence_length_stability.py
 ```
+
+Training saves the 15 models locally and does not upload them. Evaluation loads those local weights, generates embeddings in a new `analysis_runs/cell_sentence_length_stability/` folder, and saves label-alignment and scIB biological-conservation results there. The scripts also accept `--cs-length` and `--training-seed` to run a single model. The original training configuration uses 10 epochs.
+
+To evaluate existing local data and models without generation or training, set `PBMC3K_STUDY_ROOT` and `PBMC3K_MODEL_ROOT` as above and run only `evaluate_cell_sentence_length_stability.py`. Use `--cs-length` and `--training-seed` to select a subset; the full comparison uses all 15 trained models.
 
 ## Selected models
 
-The ALIAS model repositories below are private while under review.
+The ALIAS model repositories below are public.
 
 | Manuscript label | Description | Canonical model | Hugging Face |
 |---|---|---|---|
