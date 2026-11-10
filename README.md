@@ -1,4 +1,4 @@
-# alias (Adding layers of information for the analysis of scRNA-seq data)
+# Adding layers of information to scRNA-seq data using pre-trained language models
 
 [![Tests](https://github.com/MariaKrissmer/alias/actions/workflows/test.yml/badge.svg)](https://github.com/MariaKrissmer/alias/actions/workflows/test.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/downloads/)
