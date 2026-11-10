@@ -42,7 +42,7 @@ MODELS = [
     ModelSpec("MF", "MF", ("MF_HIAI_Tcells_S3_200k_lr5e5",)),
     ModelSpec("MH", "MH", ("MH_HIAI_Tcells_S5_200k_lr5e5",)),
     ModelSpec("MI", "MI", ("MI_HIAI_Tcells_N1_200k_lr5e5",)),
-    ModelSpec("Base", "PubMedBERTBase"),
+    ModelSpec("Base", "Base", ("PubMedBERTBase",)),
 ]
 OUTPUT_DIR = PLOTS_DIR / "ablation_annotation_effect"
 MODEL_LEVEL_METRICS = [

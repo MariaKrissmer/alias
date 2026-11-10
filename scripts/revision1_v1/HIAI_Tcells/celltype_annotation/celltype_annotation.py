@@ -22,6 +22,7 @@ if str(SRC_DIR) not in sys.path:
 
 from alias import evaluation as ev
 from alias.evaluation.celltype_annotation import benchmark
+from alias.evaluation.embedding import clean_model_name
 from alias.evaluation.celltype_annotation.celltypist import (
     CellTypistAnnotationConfig,
     CellTypistTrainingConfig,
@@ -44,8 +45,12 @@ DATASET_DIR = REVISION_DATA_ROOT / "HIAI_Tcells" / DATASET_ID
 EMBEDDING_ROOT = Path(
     os.environ.get("HIAI_TCELLS_EMBEDDING_ROOT", DATASET_DIR / "embeddings")
 )
-ADATA_TEST_PATH = DATASET_DIR / "adata_test.h5ad"
-SCRNA_TEST_PATH = DATASET_DIR / "datasets" / "scrna_test"
+ADATA_TEST_PATH = Path(
+    os.environ.get("HIAI_TCELLS_ADATA_TEST_PATH", DATASET_DIR / "adata_test.h5ad")
+)
+SCRNA_TEST_PATH = Path(
+    os.environ.get("HIAI_TCELLS_SCRNA_TEST_PATH", DATASET_DIR / "datasets" / "scrna_test")
+)
 SCRNA_HF_DATASET = f"mariakrissmer/scrna_HIAI_Tcells_{DATASET_ID}"
 OUTPUT_DIR = Path(
     os.environ.get("HIAI_TCELLS_ANNOTATION_OUTPUT_DIR", DATASET_DIR / "celltype_annotation")
@@ -282,25 +287,32 @@ def _run_celltypist_model(model_config: dict) -> pd.DataFrame:
     )
 
 
-def _run_similarity_model(model_config: dict) -> pd.DataFrame:
+def _run_similarity_model(
+    model_config: dict,
+    embeddings_dict: dict | None = None,
+) -> pd.DataFrame:
     model_output_dir = OUTPUT_DIR / model_config["name"]
-    scrna_test = _load_scrna_test()
-    evaluation_dict = {"scrna": {"test": scrna_test}}
+    if embeddings_dict is None:
+        scrna_test = _load_scrna_test()
+        evaluation_dict = {"scrna": {"test": scrna_test}}
 
-    embedding_config = ev.GenEmbeddingsConfig(
-        embedding_models=[str(model_config["model"])],
-        model_type="sentence_transformer",
-        batch_size=int(model_config.get("batch_size", 64)),
-        output_dir=str(EMBEDDING_ROOT / model_config["name"]),
-        max_cells=int(model_config.get("max_cells", 5000)),
-        annotation_column=ANNOTATION_COLUMN,
-        force_regenerate=FORCE_RERUN,
-    )
+        embedding_config = ev.GenEmbeddingsConfig(
+            embedding_models=[str(model_config["model"])],
+            model_type="sentence_transformer",
+            batch_size=int(model_config.get("batch_size", 64)),
+            output_dir=str(EMBEDDING_ROOT / model_config["name"]),
+            max_cells=int(model_config.get("max_cells", 5000)),
+            annotation_column=ANNOTATION_COLUMN,
+            force_regenerate=FORCE_RERUN,
+        )
 
-    embeddings_dict = ev.generate_embeddings(
-        evaluation_dict=evaluation_dict,
-        embedding_config=embedding_config,
-    )
+        embeddings_dict = ev.generate_embeddings(
+            evaluation_dict=evaluation_dict,
+            embedding_config=embedding_config,
+        )
+    else:
+        model_key = clean_model_name(str(model_config["model"]))
+        embeddings_dict = {model_key: embeddings_dict[model_key]}
 
     similarity_config = ev.CellTypeSimilarityConfig(
         similarity_metric="cosine",
@@ -348,8 +360,15 @@ def _prediction_runner(model_config: dict) -> Callable[[dict], pd.DataFrame]:
     raise ValueError(f"Unsupported annotation model kind: {model_config['kind']}")
 
 
-def _evaluate_or_load_model(model_config: dict) -> pd.DataFrame:
+def _evaluate_or_load_model(
+    model_config: dict,
+    embeddings_dict: dict | None = None,
+) -> pd.DataFrame:
     model_name = model_config["name"]
+    if embeddings_dict is not None and model_config["kind"] == "sentence_transformer_similarity":
+        model_key = clean_model_name(str(model_config["model"]))
+        if model_key not in embeddings_dict:
+            raise KeyError(f"Missing precomputed embeddings for {model_config['model']}")
     model_dir = OUTPUT_DIR / model_name
     model_dir.mkdir(parents=True, exist_ok=True)
     cache_status = (
@@ -379,7 +398,10 @@ def _evaluate_or_load_model(model_config: dict) -> pd.DataFrame:
         predictions = pd.read_csv(model_dir / "predictions.csv", index_col=0)
     else:
         print(f"Running annotation benchmark for {model_name}")
-        predictions = _prediction_runner(model_config)(model_config)
+        if embeddings_dict is not None and model_config["kind"] == "sentence_transformer_similarity":
+            predictions = _run_similarity_model(model_config, embeddings_dict=embeddings_dict)
+        else:
+            predictions = _prediction_runner(model_config)(model_config)
 
     benchmark.write_annotation_evaluation(
         predictions=predictions,
@@ -408,12 +430,18 @@ def _write_combined_outputs(summary_frames: list[pd.DataFrame]) -> None:
     combined.to_csv(OUTPUT_DIR / "model_comparison_metrics.csv", index=False)
 
 
-def run(model_names: list[str] | None = None) -> pd.DataFrame:
+def run(
+    model_names: list[str] | None = None,
+    embeddings_dict: dict | None = None,
+) -> pd.DataFrame:
     model_configs = _select_model_configs(
         [*BENCHMARK_MODELS, *COMPARISON_MODELS],
         model_names,
     )
-    summary_frames = [_evaluate_or_load_model(model_config) for model_config in model_configs]
+    summary_frames = [
+        _evaluate_or_load_model(model_config, embeddings_dict=embeddings_dict)
+        for model_config in model_configs
+    ]
     _write_combined_outputs(summary_frames)
     return pd.concat(summary_frames, ignore_index=True)
 

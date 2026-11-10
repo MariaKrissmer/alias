@@ -36,7 +36,11 @@ import seaborn as sns
 from alias import evaluation as ev
 from alias.evaluation.celltype_label_plots import EvaluationConfig
 from alias.evaluation.celltype_annotation import benchmark
-from alias.evaluation.embedding import clean_model_name, load_dataset_embedding_artifacts
+from alias.evaluation.embedding import (
+    add_additional_text_embeddings,
+    clean_model_name,
+    load_dataset_embedding_artifacts,
+)
 from alias.util.similarity import evaluate_similarity
 from alias.util.load_hf_model import load_hf_dataset
 
@@ -71,7 +75,9 @@ DATASET_DIR = REVISION_DATA_ROOT / "HIAI_Tcells" / DATASET_ID
 EMBEDDING_ROOT = Path(
     os.environ.get("HIAI_TCELLS_EMBEDDING_ROOT", DATASET_DIR / "embeddings")
 )
-SCRNA_TEST_PATH = DATASET_DIR / "datasets" / "scrna_test"
+SCRNA_TEST_PATH = Path(
+    os.environ.get("HIAI_TCELLS_SCRNA_TEST_PATH", DATASET_DIR / "datasets" / "scrna_test")
+)
 SCRNA_HF_DATASET = f"mariakrissmer/scrna_HIAI_Tcells_{DATASET_ID}"
 OUTPUT_DIR = Path(
     os.environ.get("HIAI_TCELLS_SYNONYM_OUTPUT_DIR", DATASET_DIR / "celltype_annotation_synonym")
@@ -573,23 +579,29 @@ def _write_example_synonym_label_similarity(
     model_config: dict,
     scrna_test,
     synonym_map: pd.DataFrame,
-) -> None:
-    if not RUN_EXAMPLE_SYNONYM_LABEL_SIMILARITY:
+    *,
+    precomputed_embeddings: dict | None = None,
+    selected_rows: pd.DataFrame | None = None,
+    output_root: Path | None = None,
+) -> Path | None:
+    if selected_rows is None and not RUN_EXAMPLE_SYNONYM_LABEL_SIMILARITY:
         return
     model_name = str(model_config["name"])
-    if not _should_plot_synonym_label_similarity_for_model(model_name):
+    if selected_rows is None and not _should_plot_synonym_label_similarity_for_model(model_name):
         return
 
-    label_rows = _select_synonym_label_similarity_rows(synonym_map)
+    label_rows = selected_rows if selected_rows is not None else _select_synonym_label_similarity_rows(synonym_map)
     if label_rows.empty:
         return
 
-    embeddings_dict = _generate_or_reuse_synonym_embeddings(
-        model_config=model_config,
-        scrna_test=scrna_test,
-        synonym_map=synonym_map,
-    )
-    if _should_run_umap_before_synonym_label_similarity(model_name):
+    embeddings_dict = precomputed_embeddings
+    if embeddings_dict is None:
+        embeddings_dict = _generate_or_reuse_synonym_embeddings(
+            model_config=model_config,
+            scrna_test=scrna_test,
+            synonym_map=synonym_map,
+        )
+    if precomputed_embeddings is None and _should_run_umap_before_synonym_label_similarity(model_name):
         embeddings_dict = ev.umap_plots(
             embeddings_dict=embeddings_dict,
             annotation_column=ANNOTATION_COLUMN,
@@ -623,7 +635,7 @@ def _write_example_synonym_label_similarity(
         if RUN_SYNONYM_LABEL_SIMILARITY_PLOTS
         else "example_synonym_label_similarity"
     )
-    plot_root = PLOT_OUTPUT_DIR / output_name / model_name
+    plot_root = output_root or (PLOT_OUTPUT_DIR / output_name / model_name)
     plot_root.mkdir(parents=True, exist_ok=True)
     all_results = []
 
@@ -678,7 +690,8 @@ def _write_example_synonym_label_similarity(
                 ["canonical_label", "synonym_label", "synonym_source"]
             ].to_dict(orient="records"),
             "ran_umap_before_example_similarity": (
-                _should_run_umap_before_synonym_label_similarity(model_name)
+                precomputed_embeddings is None
+                and _should_run_umap_before_synonym_label_similarity(model_name)
             ),
             "synonym_label_umap_model_filter": sorted(SYNONYM_LABEL_UMAP_MODEL_FILTER),
             "cell_umap_available": cell_umap is not None,
@@ -687,9 +700,74 @@ def _write_example_synonym_label_similarity(
                 if cell_umap is not None
                 else "No UMAP overlays were produced. Run ev.umap_plots before this script."
             ),
+            "cell_embedding_path": embeddings_dict[
+                clean_model_name(str(model_config["model"]))
+            ]["scrna"]["df_cells"]["path"],
+            "synonym_embedding_path": embeddings_dict[
+                clean_model_name(str(model_config["model"]))
+            ]["scrna"]["df_additional"]["path"],
+            "model_source": str(model_config["model"]),
+            "cell_umap_path": embeddings_dict[
+                clean_model_name(str(model_config["model"]))
+            ]["scrna"]["df_cells"].get("umap", {}).get("path"),
+            "synonym_mapping_path": str(SYNONYM_MAPPING_PATH),
         }
         with (plot_root / "metadata.json").open("w", encoding="utf-8") as handle:
             json.dump(metadata, handle, indent=2, sort_keys=True)
+    return plot_root
+
+
+def run_selected_synonym_label_similarity_from_embeddings(
+    embeddings_dict: dict,
+    observed_labels: set[str],
+    *,
+    model_name: str,
+    canonical_label: str,
+    synonym_label: str,
+    output_root: Path,
+) -> Path:
+    """Plot one curated synonym comparison using an existing analysis run's cells and UMAP."""
+    model_configs = _select_model_configs(COMPARISON_MODELS, [model_name])
+    if len(model_configs) != 1:
+        raise ValueError(f"Expected one synonym model, got {model_name!r}.")
+    model_config = model_configs[0]
+    model_key = clean_model_name(str(model_config["model"]))
+    cell_artifact = embeddings_dict[model_key]["scrna"]["df_cells"]
+    umap_path = cell_artifact.get("umap", {}).get("path")
+    if not umap_path or not Path(umap_path).is_file():
+        raise FileNotFoundError(
+            "Figure 2D needs the cell UMAP coordinates generated for ALIAS-MA "
+            "in Figure 2A."
+        )
+    synonym_map = _load_synonym_map(observed_labels)
+    selected_rows = synonym_map[
+        (synonym_map["canonical_label"] == canonical_label)
+        & (synonym_map["synonym_label"] == synonym_label)
+    ]
+    if len(selected_rows) != 1:
+        raise ValueError(
+            f"Expected one curated synonym row for {canonical_label!r} -> "
+            f"{synonym_label!r}; found {len(selected_rows)}."
+        )
+    with_synonyms = add_additional_text_embeddings(
+        embeddings_dict=embeddings_dict,
+        model_name=str(model_config["model"]),
+        dataset_name="scrna",
+        texts=synonym_map["synonym_label"].tolist(),
+        output_dir=EMBEDDING_ROOT,
+        batch_size=int(model_config.get("batch_size", 64)),
+    )
+    result = _write_example_synonym_label_similarity(
+        model_config=model_config,
+        scrna_test=None,
+        synonym_map=synonym_map,
+        precomputed_embeddings=with_synonyms,
+        selected_rows=selected_rows,
+        output_root=output_root,
+    )
+    if result is None:
+        raise RuntimeError("No selected synonym similarity plots were produced.")
+    return result
 
 
 def _candidate_label_variants(synonym_map: pd.DataFrame) -> list[dict[str, Any]]:
@@ -859,12 +937,15 @@ def _metric_variant_tables_for_model(
     model_config: dict,
     scrna_test,
     synonym_map: pd.DataFrame,
+    precomputed_embeddings: dict | None = None,
 ) -> dict[str, pd.DataFrame]:
-    embeddings_dict = _generate_or_reuse_synonym_embeddings(
-        model_config=model_config,
-        scrna_test=scrna_test,
-        synonym_map=synonym_map,
-    )
+    embeddings_dict = precomputed_embeddings
+    if embeddings_dict is None:
+        embeddings_dict = _generate_or_reuse_synonym_embeddings(
+            model_config=model_config,
+            scrna_test=scrna_test,
+            synonym_map=synonym_map,
+        )
     cell_embeddings, synonym_embeddings = _load_cell_and_synonym_embeddings(
         embeddings_dict,
         model_config=model_config,
@@ -1387,6 +1468,57 @@ def _write_synonym_metric_comparison(
         ].to_csv(model_dir / "synonym_metric_variant_label_map.csv", index=False)
     PLOT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     _plot_balanced_accuracy_synonym_ablation(comparison_df)
+
+
+def run_balanced_accuracy_from_embeddings(
+    embeddings_dict: dict,
+    model_names: list[str],
+    observed_labels: set[str],
+) -> Path:
+    """Recreate the Figure 2C synonym panel from saved cell embeddings."""
+    set_plot_style()
+    synonym_map = _load_synonym_map(observed_labels)
+    model_configs = _select_model_configs(COMPARISON_MODELS, model_names)
+    variant_tables = []
+    for model_config in model_configs:
+        with_synonyms = add_additional_text_embeddings(
+            embeddings_dict=embeddings_dict,
+            model_name=str(model_config["model"]),
+            dataset_name="scrna",
+            texts=synonym_map["synonym_label"].tolist(),
+            output_dir=EMBEDDING_ROOT,
+            batch_size=int(model_config.get("batch_size", 64)),
+        )
+        variant_tables.append(
+            _metric_variant_tables_for_model(
+                model_config=model_config,
+                scrna_test=None,
+                synonym_map=synonym_map,
+                precomputed_embeddings=with_synonyms,
+            )
+        )
+
+    names = [str(config["name"]) for config in model_configs]
+    normal_metrics = _normal_annotation_metrics_by_model(names)
+    missing = sorted(set(names) - set(normal_metrics))
+    if missing:
+        raise FileNotFoundError(f"Missing normal annotation metrics for: {missing}")
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    variant_df = pd.concat([item["summary"] for item in variant_tables], ignore_index=True)
+    variant_df.to_csv(OUTPUT_DIR / "synonym_metric_variant_scores.csv", index=False)
+    pd.concat([item["per_celltype"] for item in variant_tables], ignore_index=True).to_csv(
+        OUTPUT_DIR / "synonym_metric_variant_per_celltype_scores.csv", index=False
+    )
+    pd.concat([item["label_map"] for item in variant_tables], ignore_index=True).to_csv(
+        OUTPUT_DIR / "synonym_metric_variant_label_map.csv", index=False
+    )
+    comparison_df = _metric_comparison_rows(
+        variant_df, normal_annotation_metrics=normal_metrics
+    )
+    comparison_df.to_csv(OUTPUT_DIR / "synonym_metric_comparison.csv", index=False)
+    _plot_balanced_accuracy_synonym_ablation(comparison_df)
+    return OUTPUT_DIR / "balanced_accuracy_original_vs_synonym_annotations.pdf"
 
 
 def _write_combined_outputs(summary_frames: list[pd.DataFrame]) -> None:

@@ -6,6 +6,7 @@ import logging
 import os
 from pathlib import Path
 import sys
+from typing import Mapping
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
@@ -37,7 +38,11 @@ from alias.evaluation.embedding_evaluation import (
     compute_gene_list_pca_embeddings,
     load_external_embedding_frame,
 )
-from alias.evaluation.embedding import find_reusable_embedding_run, resolve_artifact_root
+from alias.evaluation.embedding import (
+    clean_model_name,
+    find_reusable_embedding_run,
+    resolve_artifact_root,
+)
 from alias.util.append_adata import add_embeddings_to_adata
 from alias.util.load_hf_model import load_hf_dataset
 from alias.util.plots.color_definition import (
@@ -72,15 +77,24 @@ EMBEDDING_ROOT = Path(
 ANNOTATION_DIR = Path(
     os.environ.get("HIAI_TCELLS_ANNOTATION_OUTPUT_DIR", DATASET_DIR / "celltype_annotation")
 )
-ADATA_TEST_PATH = DATASET_DIR / "adata_test.h5ad"
-SCRNA_TEST_PATH = DATASET_DIR / "datasets" / "scrna_test"
+ADATA_TEST_PATH = Path(
+    os.environ.get("HIAI_TCELLS_ADATA_TEST_PATH", DATASET_DIR / "adata_test.h5ad")
+)
+SCRNA_TEST_PATH = Path(
+    os.environ.get("HIAI_TCELLS_SCRNA_TEST_PATH", DATASET_DIR / "datasets" / "scrna_test")
+)
 OUTPUT_DIR = Path(
     os.environ.get(
         "HIAI_TCELLS_SCIB_OUTPUT_DIR",
         DATASET_DIR / "embeddings_evaluation" / "scib_embedding_comparison",
     )
 )
-EXTERNAL_EMBEDDING_DIR = DATASET_DIR / "embeddings_evaluation" / "external_embeddings"
+EXTERNAL_EMBEDDING_DIR = Path(
+    os.environ.get(
+        "HIAI_TCELLS_SCIB_EXTERNAL_EMBEDDING_DIR",
+        DATASET_DIR / "embeddings_evaluation" / "external_embeddings",
+    )
+)
 EMBEDDING_MAPPING_PATH = OUTPUT_DIR / "embedding_obsm_keys.csv"
 SCIB_RAW_RESULTS_PATH = OUTPUT_DIR / "scib_results_raw.csv"
 SCIB_SCALED_RESULTS_PATH = OUTPUT_DIR / "scib_results_minmax_scaled.csv"
@@ -115,6 +129,7 @@ SAVE_ADATA = os.environ.get("HIAI_TCELLS_SCIB_SAVE_ADATA", "0").strip().lower() 
     "on",
 }
 MODEL_FILTER_ENV = "HIAI_TCELLS_SCIB_MODELS"
+FIGURE2_EMBEDDING_MANIFEST = os.environ.get("HIAI_TCELLS_SCIB_EMBEDDING_MANIFEST")
 
 AGGREGATE_SCORE_COLUMNS = ["Batch correction", "Bio conservation", "Total"]
 ABLATION_ORDER = PUBLICATION_ABLATION_MODEL_ORDER
@@ -324,6 +339,34 @@ def _selected_embedding_specs() -> list[EmbeddingSpec]:
     if not selected:
         raise ValueError(f"No embedding evaluation models selected from {requested}")
     return selected
+
+
+def _figure2_cell_embedding_paths(
+    specs: list[EmbeddingSpec],
+) -> dict[str, Path] | None:
+    """Validate and locate the ALIAS cell embeddings created in this Figure 2 run."""
+    if not FIGURE2_EMBEDDING_MANIFEST:
+        return None
+
+    from run_celltype_annotation import load_figure2c_embedding_manifest
+
+    model_names = [spec.name for spec in specs if spec.kind == "sentence_transformer"]
+    manifest = load_figure2c_embedding_manifest(
+        Path(FIGURE2_EMBEDDING_MANIFEST), model_names
+    )
+    run_dir = Path(manifest["analysis_run"]).resolve()
+    if not OUTPUT_DIR.resolve().is_relative_to(run_dir):
+        raise ValueError(f"Figure 2 scIB output must be inside {run_dir}")
+    if EMBEDDING_ROOT.resolve() != run_dir / "embeddings":
+        raise ValueError("Figure 2 scIB embedding root must be its analysis run's embeddings folder.")
+
+    return {
+        spec.name: Path(
+            manifest["embeddings"][clean_model_name(str(spec.model))]["scrna"]["df_cells"]["path"]
+        ).resolve()
+        for spec in specs
+        if spec.kind == "sentence_transformer"
+    }
 
 
 def _normalize_bool_series(series: pd.Series) -> pd.Series:
@@ -567,7 +610,25 @@ def _append_sentence_transformer_embedding(
     adata: ad.AnnData,
     scrna_rows: pd.DataFrame,
     spec: EmbeddingSpec,
+    figure2_cell_embedding_paths: Mapping[str, Path] | None = None,
 ) -> tuple[ad.AnnData, Path]:
+    if figure2_cell_embedding_paths is not None:
+        cell_path = figure2_cell_embedding_paths[spec.name]
+        cached_cells = pd.read_parquet(cell_path)
+        cached_cells.index = cached_cells.index.astype(str)
+        expected_ids = pd.Index(scrna_rows["index"].astype(str))
+        if cached_cells.index.has_duplicates or len(cached_cells) != len(expected_ids):
+            raise ValueError(f"Figure 2 cell embeddings have incompatible IDs: {cell_path}")
+        if set(cached_cells.index) != set(expected_ids):
+            raise ValueError(
+                f"Figure 2 cell embeddings do not match the scIB test-cell sample: {cell_path}"
+            )
+        updated = align_embedding_frame_to_adata(
+            adata, cached_cells, obsm_key=spec.name, copy=False, require_all_cells=True
+        )
+        print(f"Reusing Figure 2 {spec.name} cell embeddings from {cell_path}")
+        return updated, cell_path
+
     embedding_config = ev.GenEmbeddingsConfig(
         embedding_models=[str(spec.model)],
         model_type="sentence_transformer",
@@ -682,6 +743,11 @@ def _append_external_embedding(adata: ad.AnnData, spec: EmbeddingSpec) -> ad.Ann
         if csv_path.exists():
             path = csv_path
     if not path.exists():
+        if FIGURE2_EMBEDDING_MANIFEST:
+            raise FileNotFoundError(
+                f"Figure 2E requires the {spec.name} benchmark embeddings at "
+                f"{spec.external_path}."
+            )
         print(
             f"Skipping {spec.name}: no precomputed embedding file found at "
             f"{spec.external_path} or {spec.external_path.with_suffix('.csv')}"
@@ -702,11 +768,14 @@ def _append_embedding(
     adata: ad.AnnData,
     scrna_rows: pd.DataFrame,
     spec: EmbeddingSpec,
+    figure2_cell_embedding_paths: Mapping[str, Path] | None = None,
 ) -> tuple[ad.AnnData, dict | None]:
     print(f"Preparing embedding for {spec.name} ({spec.kind})")
     embedding_source_path = ""
     if spec.kind == "sentence_transformer":
-        updated, cell_path = _append_sentence_transformer_embedding(adata, scrna_rows, spec)
+        updated, cell_path = _append_sentence_transformer_embedding(
+            adata, scrna_rows, spec, figure2_cell_embedding_paths
+        )
         embedding_source_path = str(cell_path)
     elif spec.kind == "gene_list_pca":
         updated = _append_gene_list_pca_embedding(adata, scrna_rows, spec)
@@ -1084,6 +1153,7 @@ def _write_metadata(
         "selected_models": mapping["model_name"].tolist(),
         "skipped_models": skipped_models,
         "model_filter_env": MODEL_FILTER_ENV,
+        "figure2_embedding_manifest": FIGURE2_EMBEDDING_MANIFEST,
         "dependency_guidance": {
             "scib_metrics": 'uv pip install --python .venv_annotation/bin/python "scib-metrics>=0.5.0"',
             "pca_and_parquet": 'uv pip install --python .venv_annotation/bin/python "scikit-learn>=1.4" "pyarrow>=15"',
@@ -1311,6 +1381,7 @@ def main() -> None:
     print_dependency_guidance()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     selected_specs = _selected_embedding_specs()
+    figure2_cell_embedding_paths = _figure2_cell_embedding_paths(selected_specs)
 
     cached_scores = _load_cached_scib_scores_if_complete(selected_specs)
     if cached_scores is not None:
@@ -1332,7 +1403,9 @@ def main() -> None:
     mapping_rows = []
     skipped_models = []
     for spec in selected_specs:
-        adata, mapping_row = _append_embedding(adata, scrna_rows, spec)
+        adata, mapping_row = _append_embedding(
+            adata, scrna_rows, spec, figure2_cell_embedding_paths
+        )
         if mapping_row is None:
             skipped_models.append(spec.name)
             continue

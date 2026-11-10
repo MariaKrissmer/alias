@@ -5,6 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import pandas as pd
 from pathlib import Path
+import hashlib
 import re
 import json
 
@@ -519,3 +520,108 @@ def generate_embeddings(
         embeddings_dict[cleaned_name] = model_metadata
 
     return embeddings_dict
+
+
+def add_additional_text_embeddings(
+    embeddings_dict: Dict[str, Dict[str, Dict[str, Any]]],
+    model_name: str,
+    dataset_name: str,
+    texts: List[str],
+    output_dir: str | Path,
+    batch_size: int = 256,
+) -> Dict[str, Dict[str, Dict[str, Any]]]:
+    """Encode extra texts while reusing cell embeddings from the same analysis run."""
+    model_key = clean_model_name(model_name)
+    dataset_meta = embeddings_dict[model_key][dataset_name]
+    cell_path = Path(dataset_meta["df_cells"]["path"]).resolve()
+    if not cell_path.is_file():
+        raise FileNotFoundError(f"Missing source cell embeddings: {cell_path}")
+    texts = [str(value) for value in texts]
+    if not texts:
+        raise ValueError("Additional texts must not be empty.")
+
+    source = {
+        "model_id": model_name,
+        "dataset_name": dataset_name,
+        "cell_embedding_path": str(cell_path),
+        "texts": texts,
+        "batch_size": batch_size,
+    }
+    signature = hashlib.sha256(
+        json.dumps(source, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    model_root = Path(output_dir) / "additional_text" / dataset_name / model_key
+    artifact = None
+    if model_root.is_dir():
+        for run_dir in sorted(model_root.iterdir(), reverse=True):
+            metadata_path = run_dir / "metadata.json"
+            if not metadata_path.is_file():
+                continue
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            candidate = metadata.get("artifact")
+            if (
+                metadata.get("source_signature") == signature
+                and isinstance(candidate, dict)
+                and Path(candidate.get("path", "")).is_file()
+                and isinstance(candidate.get("annotation_map"), str)
+                and Path(candidate.get("annotation_map", "")).is_file()
+            ):
+                artifact = candidate
+                break
+
+    if artifact is None:
+        model = load_embedding_model(model_name)
+        config = GenEmbeddingsConfig(
+            annotation_column="",
+            embedding_models=[model_name],
+            model_type="sentence_transformer",
+            batch_size=batch_size,
+        )
+        values = sentence_transformer_embeddings(texts, model, config)
+        frame = pd.DataFrame(np.asarray(values))
+        expected_dim = dataset_meta["df_cells"].get("embedding_dim")
+        if expected_dim is not None and frame.shape[1] != expected_dim:
+            raise ValueError(
+                f"Additional text embeddings have dimension {frame.shape[1]}, "
+                f"but source cell embeddings have dimension {expected_dim}."
+            )
+        frame.index.name = "cell_id"
+        run_dir = create_run_directory(
+            root_dir=Path(output_dir) / "additional_text",
+            category="",
+            dataset_name=dataset_name,
+            model_name=model_key,
+        )
+        artifact = save_embedding_frame(
+            run_dir,
+            "df_additional",
+            frame,
+            annotation_map={index: text for index, text in enumerate(texts)},
+            annotation_file_name="df_additional_input_mapping.json",
+        )
+        artifact.update(
+            {
+                "dataset": dataset_name,
+                "entity_type": "df_additional",
+                "column": "data",
+                "run_dir": str(run_dir),
+            }
+        )
+        write_metadata(
+            run_dir,
+            {
+                "dataset_name": dataset_name,
+                "model_id": model_name,
+                "source_cell_embedding_path": str(cell_path),
+                "source_signature": signature,
+                "n_texts": len(texts),
+                "batch_size": batch_size,
+                "artifact": artifact,
+            },
+        )
+
+    return {
+        model_key: {
+            dataset_name: {**dataset_meta, "df_additional": artifact},
+        }
+    }
