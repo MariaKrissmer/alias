@@ -7,7 +7,7 @@ This is a first version of the codebase corresponding to our PrePrint [(bioRxiv)
 
 ![](images/concept.png)
 
-Please note that, as of now, not all evaluation functions shown in the PrePrint are implemented and the tutorials for using the repo are still WIP. We will have a ready to use repo within the next couple of weeks.
+The `main` branch contains the core ALIAS Python package, setup instructions, a demo training pipeline, and tests. The scripts, configurations, and metadata for reproducing the manuscript analyses are maintained on the [`manuscript-reproducibility`](https://github.com/MariaKrissmer/alias/tree/manuscript-reproducibility) branch.
 
 ## Setup
 
